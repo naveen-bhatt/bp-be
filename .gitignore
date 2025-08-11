@@ -1,0 +1,62 @@
+.venv/
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.development
+.env.test
+.env.production
+.vscode/
+*.pyc
+# FastAPI specific
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Logs
+logs/
+*.log
+
+# Database
+*.db
+*.sqlite3
+
+# Coverage reports
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+
+# pytest
+.pytest_cache/
+.pytest/
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# IDE specific
+.idea/
+*.swp
+*.swo
+
+# Alembic
+alembic/*.ini
+alembic/versions/__pycache__/
+
+# Static and media files
+static/
+media/
+
+# Temporary files
+tmp/
+temp/
+
+# Virtual environment (additional patterns)
+env/
+ENV/
+venv/
+
