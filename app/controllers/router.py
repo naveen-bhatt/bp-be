@@ -2,7 +2,7 @@
 
 from fastapi import FastAPI, APIRouter
 
-from . import auth_controller, product_controller, cart_controller, checkout_controller
+from . import auth_controller, product_controller, cart_controller, checkout_controller, oauth_controller
 from app.schemas.common import PaginatedResponse
 from app.schemas.product import ProductDetail
 from app.schemas.auth import AnonymousTokenResponse
@@ -20,6 +20,10 @@ api_router.add_api_route('/auth/refresh', auth_controller.refresh_token, methods
 api_router.add_api_route('/auth/social', auth_controller.social_login, methods=["POST"], tags=["Auth"])
 api_router.add_api_route('/auth/me', auth_controller.get_current_user, methods=["GET"], tags=["Auth"])
 api_router.add_api_route('/auth/logout', auth_controller.logout, methods=["POST"], tags=["Auth"])
+
+# Google OAuth endpoints
+api_router.add_api_route('/auth/google/start', oauth_controller.google_start, methods=["GET"], tags=["Auth", "OAuth"])
+api_router.add_api_route('/auth/google/callback', oauth_controller.google_callback, methods=["GET"], tags=["Auth", "OAuth"])
 
 # =============================================================================
 # PRODUCT ENDPOINTS

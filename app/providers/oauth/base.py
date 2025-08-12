@@ -3,6 +3,9 @@
 from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional
 from dataclasses import dataclass
+import secrets
+import hashlib
+import base64
 
 
 @dataclass
@@ -13,6 +16,7 @@ class OAuthTokens:
     refresh_token: Optional[str] = None
     expires_in: Optional[int] = None
     token_type: str = "Bearer"
+    id_token: Optional[str] = None
 
 
 @dataclass
@@ -24,6 +28,39 @@ class OAuthUserInfo:
     name: Optional[str] = None
     avatar_url: Optional[str] = None
     verified: bool = False
+
+
+@dataclass
+class OAuthState:
+    """OAuth state for PKCE flow."""
+    
+    state: str
+    nonce: str
+    code_verifier: str
+    code_challenge: str
+    redirect_uri: str
+    anonymous_user_id: Optional[str] = None
+    
+    @classmethod
+    def generate(cls, redirect_uri: str, anonymous_user_id: Optional[str] = None) -> 'OAuthState':
+        """Generate new OAuth state with PKCE parameters."""
+        state = secrets.token_urlsafe(32)
+        nonce = secrets.token_urlsafe(32)
+        code_verifier = secrets.token_urlsafe(32)
+        
+        # Generate code_challenge from code_verifier using SHA256
+        code_challenge = base64.urlsafe_b64encode(
+            hashlib.sha256(code_verifier.encode('utf-8')).digest()
+        ).decode('utf-8').rstrip('=')
+        
+        return cls(
+            state=state,
+            nonce=nonce,
+            code_verifier=code_verifier,
+            code_challenge=code_challenge,
+            redirect_uri=redirect_uri,
+            anonymous_user_id=anonymous_user_id
+        )
 
 
 class OAuthProvider(ABC):
@@ -47,12 +84,13 @@ class OAuthProvider(ABC):
         pass
     
     @abstractmethod
-    async def exchange_code_for_tokens(self, code: str, redirect_uri: Optional[str] = None) -> OAuthTokens:
+    async def exchange_code_for_tokens(self, code: str, code_verifier: str, redirect_uri: str) -> OAuthTokens:
         """
-        Exchange authorization code for access tokens.
+        Exchange authorization code for access tokens using PKCE.
         
         Args:
             code: Authorization code from OAuth callback.
+            code_verifier: PKCE code verifier.
             redirect_uri: Redirect URI used in authorization.
             
         Returns:
@@ -64,12 +102,13 @@ class OAuthProvider(ABC):
         pass
     
     @abstractmethod
-    async def verify_id_token(self, id_token: str) -> OAuthUserInfo:
+    async def verify_id_token(self, id_token: str, nonce: Optional[str] = None) -> OAuthUserInfo:
         """
         Verify ID token and extract user information.
         
         Args:
             id_token: JWT ID token from OAuth provider.
+            nonce: Expected nonce value for verification.
             
         Returns:
             OAuthUserInfo: User information from token.
@@ -96,13 +135,12 @@ class OAuthProvider(ABC):
         pass
     
     @abstractmethod
-    def get_authorization_url(self, redirect_uri: str, state: Optional[str] = None) -> str:
+    def get_authorization_url(self, oauth_state: OAuthState) -> str:
         """
-        Get authorization URL for OAuth flow.
+        Get authorization URL for OAuth flow with PKCE.
         
         Args:
-            redirect_uri: Redirect URI for callback.
-            state: Optional state parameter for CSRF protection.
+            oauth_state: OAuth state containing PKCE parameters.
             
         Returns:
             str: Authorization URL.

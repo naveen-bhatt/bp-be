@@ -3,7 +3,7 @@
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.core.dependencies import DatabaseSession, CurrentUserId
+from app.core.dependencies import DatabaseSession, CurrentUserId, AnonymousUserId
 from app.schemas.auth import (
     LoginRequest, RegisterRequest, TokenResponse, 
     RefreshTokenRequest, SocialLoginRequest, AnonymousTokenResponse
@@ -46,26 +46,48 @@ def create_anonymous_user(
 
 def register(
     request: RegisterRequest,
+    anonymous_user_id: AnonymousUserId,
     db: DatabaseSession
 ) -> TokenResponse:
     """
-    Register a new user.
+    Register a user by converting an anonymous user.
     
     Args:
-        request: User registration data.
+        request: User registration data with email and password.
+        anonymous_user_id: User ID extracted from anonymous token in Authorization header.
         db: Database session.
         
     Returns:
-        TokenResponse: JWT tokens for the new user.
+        TokenResponse: JWT tokens for the registered user.
         
     Raises:
         HTTPException: If registration fails.
     """
-    # TODO: Implement with AuthService
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Register endpoint not yet implemented"
-    )
+    try:
+        auth_service = AuthService(db)
+        tokens = auth_service.register(
+            user_id=anonymous_user_id,
+            email=request.email,
+            password=request.password
+        )
+        
+        return TokenResponse(
+            access_token=tokens["access_token"],
+            refresh_token=tokens["refresh_token"],
+            token_type=tokens["token_type"],
+            expires_in=1800  # 30 minutes in seconds
+        )
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Registration failed: {str(e)}"
+        )
 
 
 def login(
@@ -109,22 +131,47 @@ def refresh_token(
     Raises:
         HTTPException: If token refresh fails.
     """
-    # TODO: Implement with AuthService
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Token refresh endpoint not yet implemented"
-    )
+    try:
+        # Create auth service
+        auth_service = AuthService(db)
+        
+        # Refresh tokens
+        tokens = auth_service.refresh_access_token(request.refresh_token)
+        
+        return TokenResponse(
+            access_token=tokens["access_token"],
+            refresh_token=tokens["refresh_token"],
+            token_type=tokens["token_type"],
+            expires_in=1800  # 30 minutes in seconds
+        )
+        
+    except HTTPException:
+        # Re-raise HTTP exceptions from security module
+        raise
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(e)
+        )
+    except Exception as e:
+        # logger.error(f"Token refresh failed: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Token refresh failed: {str(e)}"
+        )
 
 
 def social_login(
     request: SocialLoginRequest,
+    anonymous_user_id: AnonymousUserId,
     db: DatabaseSession
 ) -> TokenResponse:
     """
-    Social login with OAuth provider.
+    Social login by converting an anonymous user.
     
     Args:
-        request: Social login data.
+        request: Social login data with provider info.
+        anonymous_user_id: User ID extracted from anonymous token in Authorization header.
         db: Database session.
         
     Returns:
@@ -133,11 +180,35 @@ def social_login(
     Raises:
         HTTPException: If social login fails.
     """
-    # TODO: Implement with SocialAuthService
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Social login endpoint not yet implemented"
-    )
+    try:
+        # For now, we'll use a mock email from the provider
+        # In a real implementation, you would verify the id_token/code with the provider
+        mock_email = f"user_{anonymous_user_id[:8]}@{request.provider}.com"
+        
+        auth_service = AuthService(db)
+        tokens = auth_service.social_register(
+            user_id=anonymous_user_id,
+            email=mock_email,
+            provider=request.provider
+        )
+        
+        return TokenResponse(
+            access_token=tokens["access_token"],
+            refresh_token=tokens["refresh_token"],
+            token_type=tokens["token_type"],
+            expires_in=1800  # 30 minutes in seconds
+        )
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Social login failed: {str(e)}"
+        )
 
 
 def get_current_user(

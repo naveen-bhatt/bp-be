@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.repositories.user_repository import UserRepository
 from app.models.user import User
-from app.core.security import create_anonymous_token, verify_password, hash_password, create_token_pair
+from app.core.security import create_anonymous_token, verify_password, hash_password, create_token_pair, verify_token
 from app.core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -98,30 +98,48 @@ class AuthService:
             logger.error(f"Login error for {email}: {str(e)}")
             raise
     
-    def register(self, email: str, password: str) -> Dict[str, str]:
+    def register(self, user_id: str, email: str, password: str) -> Dict[str, str]:
         """
-        Register a new user.
+        Register a user by converting an anonymous user.
         
         Args:
+            user_id: ID of the anonymous user to convert.
             email: User's email address.
             password: User's password.
             
         Returns:
-            Dict[str, str]: Token pair for the new user.
+            Dict[str, str]: Token pair for the registered user.
             
         Raises:
-            ValueError: If email already exists.
+            ValueError: If user not found, not anonymous, or email already exists.
         """
         try:
-            logger.info(f"Attempting registration for email: {email}")
+            logger.info(f"Attempting registration conversion for user {user_id} with email: {email}")
             
-            # Check if user already exists
-            existing_user = self.user_repo.get_by_email(email)
-            if existing_user:
-                raise ValueError("Email already registered")
+            # Get the user first to check its current state
+            user = self.user_repo.get_by_id(user_id)
+            if not user:
+                raise ValueError("User not found")
             
-            # Create new user
-            user = self.user_repo.create(email=email, password=password)
+            # If user is already registered, check if it's the same email
+            if not user.is_anonymous():
+                if user.email == email:
+                    logger.info(f"User {user_id} already registered with email: {email}")
+                    # User already registered with this email, just return tokens
+                    user_data = {
+                        "sub": str(user.id),
+                        "email": user.email,
+                        "user_type": getattr(user, 'user_type', 'registered').value if hasattr(user, 'user_type') and user.user_type else 'registered'
+                    }
+                    tokens = create_token_pair(user_data)
+                    return tokens
+                else:
+                    raise ValueError(f"User already registered with different email: {user.email}")
+            
+            # Convert anonymous user to registered
+            user = self.user_repo.convert_anonymous_to_registered(user_id, email, password)
+            if not user:
+                raise ValueError("User not found or conversion failed")
             
             # Create tokens
             user_data = {
@@ -131,9 +149,93 @@ class AuthService:
             }
             
             tokens = create_token_pair(user_data)
-            logger.info(f"Successful registration for user: {email}")
+            logger.info(f"Successful registration conversion for user: {email}")
             return tokens
             
         except Exception as e:
-            logger.error(f"Registration error for {email}: {str(e)}")
+            logger.error(f"Registration error for user {user_id} with email {email}: {str(e)}")
+            raise
+    
+    def social_register(self, user_id: str, email: str, provider: str) -> Dict[str, str]:
+        """
+        Register a user via social login by converting an anonymous user.
+        
+        Args:
+            user_id: ID of the anonymous user to convert.
+            email: User's email address from social provider.
+            provider: Social provider name.
+            
+        Returns:
+            Dict[str, str]: Token pair for the registered user.
+            
+        Raises:
+            ValueError: If user not found or not anonymous.
+        """
+        try:
+            logger.info(f"Attempting social registration conversion for user {user_id} with email: {email} (provider: {provider})")
+            
+            # Convert anonymous user to social
+            user = self.user_repo.convert_anonymous_to_social(user_id, email, provider)
+            if not user:
+                raise ValueError("User not found or conversion failed")
+            
+            # Create tokens
+            user_data = {
+                "sub": str(user.id),
+                "email": user.email,
+                "user_type": getattr(user, 'user_type', 'social').value if hasattr(user, 'user_type') and user.user_type else 'social'
+            }
+            
+            tokens = create_token_pair(user_data)
+            logger.info(f"Successful social registration conversion for user: {email}")
+            return tokens
+            
+        except Exception as e:
+            logger.error(f"Social registration error for user {user_id} with email {email}: {str(e)}")
+            raise
+    
+    def refresh_access_token(self, refresh_token: str) -> Dict[str, str]:
+        """
+        Generate new access token using refresh token.
+        
+        Args:
+            refresh_token: Valid refresh token.
+            
+        Returns:
+            Dict[str, str]: New token pair.
+            
+        Raises:
+            HTTPException: If refresh token is invalid or user not found.
+        """
+        try:
+            logger.info("Attempting to refresh access token")
+            
+            # Verify refresh token
+            payload = verify_token(refresh_token, "refresh")
+            user_id = payload.get("sub")
+            
+            if not user_id:
+                raise ValueError("Invalid token: missing user ID")
+            
+            # Get user from database to ensure they still exist and are active
+            user = self.user_repo.get_by_id(user_id)
+            if not user:
+                raise ValueError("User not found")
+            
+            if not user.is_active:
+                raise ValueError("User account is not active")
+            
+            # Create new token pair
+            user_data = {
+                "sub": str(user.id),
+                "email": user.email,
+                "user_type": getattr(user, 'user_type', 'registered').value if hasattr(user, 'user_type') and user.user_type else 'registered'
+            }
+            
+            tokens = create_token_pair(user_data)
+            logger.info(f"Successfully refreshed tokens for user: {user.email}")
+            return tokens
+            
+        except Exception as e:
+            logger.error(f"Token refresh error: {str(e)}")
             raise

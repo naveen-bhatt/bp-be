@@ -92,6 +92,88 @@ class UserRepository:
         logger.info(f"Created anonymous user: {user.id} with temp email: {anonymous_email}")
         return user
     
+    def convert_anonymous_to_registered(self, user_id: str, email: str, password: str) -> Optional[User]:
+        """
+        Convert an anonymous user to a registered user.
+        
+        Args:
+            user_id: ID of the anonymous user to convert.
+            email: New email address for the user.
+            password: Plain text password (will be hashed).
+            
+        Returns:
+            Optional[User]: Updated user if successful, None if user not found or not anonymous.
+            
+        Raises:
+            ValueError: If user is not anonymous or email already exists.
+        """
+        # Get the user
+        user = self.get_by_id(user_id)
+        if not user:
+            logger.warning(f"User not found for conversion: {user_id}")
+            return None
+        
+        # Check if user is anonymous
+        if not user.is_anonymous():
+            logger.warning(f"User {user_id} is not anonymous, cannot convert")
+            raise ValueError("User is not anonymous")
+        
+        # Check if email already exists
+        existing_user = self.get_by_email(email)
+        if existing_user and existing_user.id != user_id:
+            logger.warning(f"Email already exists: {email}")
+            raise ValueError("Email already registered")
+        
+        # Update user to registered
+        user.email = email
+        user.password_hash = hash_password(password)
+        user.email_verified = False  # Will be verified later via email
+        # user.user_type = UserType.REGISTERED  # Will be added after migration
+        
+        self.db.commit()
+        self.db.refresh(user)
+        
+        logger.info(f"Converted anonymous user {user_id} to registered user with email: {email}")
+        return user
+    
+    def convert_anonymous_to_social(self, user_id: str, email: str, provider: str) -> Optional[User]:
+        """
+        Convert an anonymous user to a social user.
+        
+        Args:
+            user_id: ID of the anonymous user to convert.
+            email: Email address from social provider.
+            provider: Social provider name.
+            
+        Returns:
+            Optional[User]: Updated user if successful, None if user not found or not anonymous.
+            
+        Raises:
+            ValueError: If user is not anonymous.
+        """
+        # Get the user
+        user = self.get_by_id(user_id)
+        if not user:
+            logger.warning(f"User not found for social conversion: {user_id}")
+            return None
+        
+        # Check if user is anonymous
+        if not user.is_anonymous():
+            logger.warning(f"User {user_id} is not anonymous, cannot convert")
+            raise ValueError("User is not anonymous")
+        
+        # Update user to social
+        user.email = email
+        user.password_hash = hash_password("social_temp_password")  # Temporary password for social users
+        user.email_verified = True  # Social providers verify emails
+        # user.user_type = UserType.SOCIAL  # Will be added after migration
+        
+        self.db.commit()
+        self.db.refresh(user)
+        
+        logger.info(f"Converted anonymous user {user_id} to social user with email: {email} (provider: {provider})")
+        return user
+    
     def get_by_id(self, user_id: str) -> Optional[User]:
         """
         Get user by ID.

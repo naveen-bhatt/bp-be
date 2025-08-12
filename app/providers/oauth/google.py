@@ -5,7 +5,7 @@ from typing import Optional, Dict, Any
 import httpx
 from jose import jwt, JWTError
 
-from .base import OAuthProvider, OAuthTokens, OAuthUserInfo
+from .base import OAuthProvider, OAuthTokens, OAuthUserInfo, OAuthState
 from app.core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -29,38 +29,39 @@ class GoogleOAuthProvider(OAuthProvider):
         """Get provider name."""
         return "google"
     
-    def get_authorization_url(self, redirect_uri: str, state: Optional[str] = None) -> str:
+    def get_authorization_url(self, oauth_state: OAuthState) -> str:
         """
-        Get Google authorization URL.
+        Get Google authorization URL with PKCE.
         
         Args:
-            redirect_uri: Redirect URI for callback.
-            state: Optional state parameter for CSRF protection.
+            oauth_state: OAuth state containing PKCE parameters.
             
         Returns:
             str: Authorization URL.
         """
         params = {
             "client_id": self.client_id,
-            "redirect_uri": redirect_uri,
+            "redirect_uri": oauth_state.redirect_uri,
             "scope": "openid email profile",
             "response_type": "code",
             "access_type": "offline",
-            "prompt": "consent"
+            "prompt": "consent",
+            "state": oauth_state.state,
+            "nonce": oauth_state.nonce,
+            "code_challenge": oauth_state.code_challenge,
+            "code_challenge_method": "S256"
         }
-        
-        if state:
-            params["state"] = state
         
         query_string = "&".join([f"{k}={v}" for k, v in params.items()])
         return f"{self.AUTHORIZATION_URL}?{query_string}"
     
-    async def exchange_code_for_tokens(self, code: str, redirect_uri: Optional[str] = None) -> OAuthTokens:
+    async def exchange_code_for_tokens(self, code: str, code_verifier: str, redirect_uri: str) -> OAuthTokens:
         """
-        Exchange authorization code for Google tokens.
+        Exchange authorization code for Google tokens using PKCE.
         
         Args:
             code: Authorization code from Google callback.
+            code_verifier: PKCE code verifier.
             redirect_uri: Redirect URI used in authorization.
             
         Returns:
@@ -74,7 +75,8 @@ class GoogleOAuthProvider(OAuthProvider):
             "client_secret": self.client_secret,
             "code": code,
             "grant_type": "authorization_code",
-            "redirect_uri": redirect_uri or "urn:ietf:wg:oauth:2.0:oob"
+            "redirect_uri": redirect_uri,
+            "code_verifier": code_verifier
         }
         
         try:
@@ -88,19 +90,21 @@ class GoogleOAuthProvider(OAuthProvider):
                     access_token=token_data["access_token"],
                     refresh_token=token_data.get("refresh_token"),
                     expires_in=token_data.get("expires_in"),
-                    token_type=token_data.get("token_type", "Bearer")
+                    token_type=token_data.get("token_type", "Bearer"),
+                    id_token=token_data.get("id_token")  # Google includes id_token in response
                 )
                 
         except Exception as e:
             logger.error(f"Google token exchange failed: {e}")
             raise ValueError(f"Failed to exchange code for tokens: {e}")
     
-    async def verify_id_token(self, id_token: str) -> OAuthUserInfo:
+    async def verify_id_token(self, id_token: str, nonce: Optional[str] = None) -> OAuthUserInfo:
         """
         Verify Google ID token and extract user information.
         
         Args:
             id_token: JWT ID token from Google.
+            nonce: Expected nonce value for verification.
             
         Returns:
             OAuthUserInfo: User information from token.
@@ -120,6 +124,10 @@ class GoogleOAuthProvider(OAuthProvider):
                 audience=self.client_id,
                 issuer="https://accounts.google.com"
             )
+            
+            # Verify nonce if provided
+            if nonce and payload.get("nonce") != nonce:
+                raise ValueError("Nonce verification failed")
             
             return OAuthUserInfo(
                 email=payload["email"],

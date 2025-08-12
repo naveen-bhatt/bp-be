@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from .db import get_db
 from .security import verify_token
 from .logging import get_logger
+import jwt
 
 logger = get_logger(__name__)
 
@@ -155,10 +156,62 @@ def get_cart_token(request: Request) -> Optional[str]:
     return request.headers.get("X-Cart-Token")
 
 
+def get_anonymous_user_id(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
+    """
+    Extract user ID from anonymous token.
+    
+    Args:
+        credentials: HTTP Bearer token credentials.
+        
+    Returns:
+        str: User ID from the anonymous token.
+        
+    Raises:
+        HTTPException: If token is invalid or not anonymous.
+    """
+    try:
+        # Decode token without verification to get payload
+        token = credentials.credentials
+        payload = jwt.decode(token, options={"verify_signature": False})
+        
+        # Check if it's an anonymous token
+        if payload.get("user_type") != "anonymous":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Token is not an anonymous token"
+            )
+        
+        user_id = payload.get("sub")
+        if not user_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid token: missing user ID"
+            )
+        
+        return user_id
+        
+    except HTTPException:
+        # Re-raise HTTP exceptions as-is
+        raise
+    except jwt.InvalidTokenError as e:
+        logger.error(f"JWT decode error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token format"
+        )
+    except Exception as e:
+        logger.error(f"Error extracting anonymous user ID: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid anonymous token"
+        )
+
+
 # Type aliases for dependency injection
 DatabaseSession = Annotated[Session, Depends(get_db)]
 CurrentUserId = Annotated[str, Depends(get_current_user_id)]
 OptionalUserId = Annotated[Optional[str], Depends(get_current_user_optional)]
 AdminUserId = Annotated[str, Depends(get_admin_user)]
+AnonymousUserId = Annotated[str, Depends(get_anonymous_user_id)]
 Pagination = Annotated[PaginationParams, Depends(PaginationParams)]
 CartToken = Annotated[Optional[str], Depends(get_cart_token)]
