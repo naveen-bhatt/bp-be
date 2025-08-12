@@ -222,3 +222,55 @@ class StockUpdate(BaseModel):
         if v not in valid_operations:
             raise ValueError(f'Operation must be one of: {", ".join(valid_operations)}')
         return v
+
+
+class UserInfo(BaseModel):
+    """User information for product metadata."""
+    
+    id: str = Field(..., description="User ID")
+    email: str = Field(..., description="User email")
+    
+    class Config:
+        from_attributes = True
+
+
+class ProductDetail(BaseModel):
+    """Detailed product view schema with all information including metadata."""
+    
+    id: str = Field(..., description="Product ID")
+    name: str = Field(..., description="Product name")
+    slug: str = Field(..., description="URL-friendly product identifier")
+    description: Optional[str] = Field(None, description="Product description")
+    main_image_url: Optional[str] = Field(None, description="Main product image URL")
+    slide_image_urls: Optional[List[str]] = Field(default=[], description="Additional product images")
+    price: str = Field(..., description="Product price as decimal string")
+    currency: str = Field(..., description="Price currency code")
+    quantity: int = Field(..., description="Available stock quantity")
+    is_active: bool = Field(..., description="Whether product is active")
+    
+    # Perfume-specific fields
+    brand: str = Field(..., description="Perfume brand")
+    fragrance_family: str = Field(..., description="Fragrance family category")
+    concentration: str = Field(..., description="Perfume concentration (EDT, EDP, Parfum)")
+    volume_ml: int = Field(..., description="Volume in milliliters")
+    gender: str = Field(..., description="Target gender (Men, Women, Unisex)")
+    rank_of_product: int = Field(..., description="Product ranking")
+    
+    # Fragrance notes
+    top_notes: Optional[List[str]] = Field(default=[], description="Top fragrance notes")
+    middle_notes: Optional[List[str]] = Field(default=[], description="Middle fragrance notes")
+    base_notes: Optional[List[str]] = Field(default=[], description="Base fragrance notes")
+    
+    # Manufacturing and expiry information
+    date_of_manufacture: Optional[str] = Field(None, description="Manufacturing date (YYYY-MM-DD)")
+    expiry_duration_months: Optional[int] = Field(None, description="Expiry duration in months")
+    
+    # Computed fields
+    is_available: bool = Field(..., description="Whether product is available for purchase")
+    is_expired: bool = Field(..., description="Whether product has expired")
+    days_until_expiry: Optional[int] = Field(None, description="Days until expiry (if applicable)")
+    expiry_date: Optional[str] = Field(None, description="Calculated expiry date (if applicable)")
+    all_fragrance_notes: List[str] = Field(..., description="All fragrance notes combined")
+    
+    class Config:
+        from_attributes = True

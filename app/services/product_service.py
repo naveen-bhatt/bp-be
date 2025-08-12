@@ -4,10 +4,11 @@ from typing import Optional, List
 from sqlalchemy.orm import Session
 
 from app.repositories.product_repository import ProductRepository
-from app.schemas.product import ProductList
+from app.schemas.product import ProductList, ProductDetail, UserInfo
 from app.schemas.common import PaginatedResponse, PaginationMeta
 from app.core.dependencies import PaginationParams
 from app.core.logging import get_logger
+from app.models.product import Product
 
 logger = get_logger(__name__)
 
@@ -90,3 +91,63 @@ class ProductService:
             items=product_items,
             meta=meta
         )
+    
+    def get_product_by_slug(self, slug: str) -> Optional[ProductDetail]:
+        """
+        Get detailed product information by slug.
+        
+        Args:
+            slug: Product slug to search for.
+            
+        Returns:
+            Optional[ProductDetail]: Detailed product information if found, None otherwise.
+        """
+        logger.info(f"Getting product by slug: {slug}")
+        
+        # Get product with user relationships from repository
+        product = self.product_repo.get_by_slug(slug)
+        
+        if not product:
+            logger.warning(f"Product not found with slug: {slug}")
+            return None
+        
+        # Create detailed product response
+        product_detail = ProductDetail(
+            id=str(product.id),
+            name=product.name,
+            slug=product.slug,
+            description=product.description,
+            main_image_url=product.main_image_url,
+            slide_image_urls=product.slide_image_urls or [],
+            price=str(product.price),
+            currency=product.currency,
+            quantity=product.quantity,
+            is_active=product.is_active,
+            
+            # Perfume-specific fields
+            brand=product.brand,
+            fragrance_family=product.fragrance_family,
+            concentration=product.concentration,
+            volume_ml=product.volume_ml,
+            gender=product.gender,
+            rank_of_product=product.rank_of_product,
+            
+            # Fragrance notes
+            top_notes=product.top_notes or [],
+            middle_notes=product.middle_notes or [],
+            base_notes=product.base_notes or [],
+            
+            # Manufacturing and expiry information
+            date_of_manufacture=product.date_of_manufacture.isoformat() if product.date_of_manufacture else None,
+            expiry_duration_months=product.expiry_duration_months,
+            
+            # Computed fields
+            is_available=product.is_available(),
+            is_expired=product.is_expired(),
+            days_until_expiry=product.days_until_expiry(),
+            expiry_date=product.expiry_date.isoformat() if product.expiry_date else None,
+            all_fragrance_notes=product.all_fragrance_notes,
+        )
+        
+        logger.info(f"Retrieved product details for: {product.name}")
+        return product_detail

@@ -4,6 +4,7 @@ from fastapi import FastAPI, APIRouter
 
 from . import auth_controller, product_controller, cart_controller, checkout_controller
 from app.schemas.common import PaginatedResponse
+from app.schemas.product import ProductDetail
 
 # Create main API router
 api_router = APIRouter(prefix="/api/v1")
@@ -22,8 +23,7 @@ api_router.add_api_route('/auth/logout', auth_controller.logout, methods=["POST"
 # PRODUCT ENDPOINTS
 # =============================================================================
 api_router.add_api_route('/products', product_controller.list_products, methods=["GET"], tags=["Products"], response_model=PaginatedResponse)
-api_router.add_api_route('/products/{product_id}', product_controller.get_product, methods=["GET"], tags=["Products"])
-api_router.add_api_route('/products/slug/{slug}', product_controller.get_product_by_slug, methods=["GET"], tags=["Products"])
+api_router.add_api_route('/products/{slug}', product_controller.get_product_by_slug, methods=["GET"], tags=["Products"], response_model=ProductDetail)
 api_router.add_api_route('/products', product_controller.create_product, methods=["POST"], tags=["Products"])
 api_router.add_api_route('/products/{product_id}', product_controller.update_product, methods=["PUT"], tags=["Products"])
 api_router.add_api_route('/products/{product_id}/stock', product_controller.update_product_stock, methods=["PATCH"], tags=["Products"])

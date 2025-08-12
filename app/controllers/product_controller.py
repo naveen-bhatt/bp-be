@@ -6,14 +6,13 @@ from sqlalchemy.orm import Session
 
 from app.core.dependencies import DatabaseSession, AdminUserId, Pagination
 from app.schemas.product import (
-    ProductCreate, ProductUpdate, ProductPublic, 
+    ProductCreate, ProductUpdate, ProductPublic, ProductDetail,
     ProductList, ProductSearch, StockUpdate
 )
 from app.schemas.common import PaginatedResponse, SuccessResponse
 from app.core.logging import get_logger
 
-# TODO: Import services when implemented
-# from app.services.product_service import ProductService
+from app.services.product_service import ProductService
 
 logger = get_logger(__name__)
 
@@ -75,31 +74,47 @@ async def get_product(
     )
 
 
-async def get_product_by_slug(
+def get_product_by_slug(
     slug: str,
     db: DatabaseSession
-) -> ProductPublic:
+) -> ProductDetail:
     """
-    Get product by slug.
+    Get product by slug with detailed information.
     
     Args:
         slug: Product slug.
         db: Database session.
         
     Returns:
-        ProductPublic: Product details.
+        ProductDetail: Detailed product information.
         
     Raises:
         HTTPException: If product not found.
     """
-    # TODO: Implement with ProductService
-    # service = ProductService(db)
-    # return await service.get_product_by_slug(slug)
-    
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Get product by slug endpoint not yet implemented"
-    )
+    try:
+        logger.info(f"Getting product by slug: {slug}")
+        
+        service = ProductService(db)
+        product = service.get_product_by_slug(slug)
+        
+        if not product:
+            logger.warning(f"Product not found with slug: {slug}")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Product with slug '{slug}' not found"
+            )
+        
+        logger.info(f"Successfully retrieved product: {product.name}")
+        return product
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting product by slug {slug}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve product"
+        )
 
 
 async def create_product(

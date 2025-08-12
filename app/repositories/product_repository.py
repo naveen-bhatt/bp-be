@@ -89,7 +89,7 @@ class ProductRepository:
             Optional[Product]: Product if found, None otherwise.
         """
         return self.db.query(Product).filter(Product.slug == slug).first()
-    
+        
     def get_active_by_id(self, product_id: str) -> Optional[Product]:
         """
         Get active product by ID.
