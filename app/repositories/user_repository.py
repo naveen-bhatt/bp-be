@@ -4,7 +4,7 @@ from typing import Optional, List
 from sqlalchemy.orm import Session
 from sqlalchemy import and_
 
-from app.models.user import User
+from app.models.user import User, UserType
 from app.core.security import hash_password
 from app.core.logging import get_logger
 
@@ -40,12 +40,16 @@ class UserRepository:
             user = user_repo.create("user@example.com", "password123")
             ```
         """
-        hashed_password = hash_password(password) if password else None
+        password_hash = hash_password(password) if password else hash_password("temp_password")
         
         user = User(
             email=email,
-            hashed_password=hashed_password,
-            **kwargs
+            password_hash=password_hash,
+            first_name=kwargs.get('first_name'),
+            last_name=kwargs.get('last_name'),
+            is_active=kwargs.get('is_active', True),
+            is_admin=kwargs.get('is_admin', False),
+            email_verified=kwargs.get('email_verified', False)
         )
         
         self.db.add(user)
@@ -53,6 +57,39 @@ class UserRepository:
         self.db.refresh(user)
         
         logger.info(f"Created user: {user.email}")
+        return user
+    
+    def create_anonymous(self) -> User:
+        """
+        Create an anonymous user for guest sessions.
+        
+        Returns:
+            User: Created anonymous user instance.
+            
+        Example:
+            ```python
+            anonymous_user = user_repo.create_anonymous()
+            ```
+        """
+        # Generate a unique email for anonymous users for now
+        import uuid
+        anonymous_email = f"anonymous_{str(uuid.uuid4())[:8]}@temp.local"
+        
+        user = User(
+            email=anonymous_email,  # Temporary email for anonymous users
+            password_hash=hash_password("anonymous_temp_password"),  # Temporary password for anonymous users
+            first_name=None,
+            last_name=None,
+            is_active=True,
+            is_admin=False,
+            email_verified=False
+        )
+        
+        self.db.add(user)
+        self.db.commit()
+        self.db.refresh(user)
+        
+        logger.info(f"Created anonymous user: {user.id} with temp email: {anonymous_email}")
         return user
     
     def get_by_id(self, user_id: str) -> Optional[User]:

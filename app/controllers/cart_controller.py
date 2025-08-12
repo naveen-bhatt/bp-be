@@ -1,6 +1,6 @@
 """Cart controller."""
 
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import HTTPException, status, Request
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import DatabaseSession, OptionalUserId, CartToken
@@ -13,11 +13,7 @@ from app.schemas.common import SuccessResponse
 # TODO: Import services when implemented
 # from app.services.cart_service import CartService
 
-router = APIRouter()
-
-
-@router.get("", response_model=CartPublic)
-async def get_cart(
+def get_cart(
     request: Request,
     user_id: OptionalUserId,
     cart_token: CartToken,
@@ -42,8 +38,7 @@ async def get_cart(
     )
 
 
-@router.get("/summary", response_model=CartSummary)
-async def get_cart_summary(
+def get_cart_summary(
     user_id: OptionalUserId,
     cart_token: CartToken,
     db: DatabaseSession
@@ -66,8 +61,7 @@ async def get_cart_summary(
     )
 
 
-@router.post("/items", response_model=CartPublic, status_code=status.HTTP_201_CREATED)
-async def add_to_cart(
+def add_to_cart(
     request: AddToCartRequest,
     user_id: OptionalUserId,
     cart_token: CartToken,
@@ -95,8 +89,7 @@ async def add_to_cart(
     )
 
 
-@router.patch("/items/{item_id}", response_model=CartPublic)
-async def update_cart_item(
+def update_cart_item(
     item_id: str,
     request: UpdateCartItemRequest,
     user_id: OptionalUserId,
@@ -126,8 +119,7 @@ async def update_cart_item(
     )
 
 
-@router.delete("/items/{item_id}", response_model=CartPublic)
-async def remove_cart_item(
+def remove_cart_item(
     item_id: str,
     user_id: OptionalUserId,
     cart_token: CartToken,
@@ -155,8 +147,7 @@ async def remove_cart_item(
     )
 
 
-@router.post("/merge", response_model=CartPublic)
-async def merge_guest_cart(
+def merge_guest_cart(
     request: CartMergeRequest,
     user_id: OptionalUserId,
     db: DatabaseSession
@@ -188,8 +179,7 @@ async def merge_guest_cart(
     )
 
 
-@router.post("/clear", response_model=SuccessResponse)
-async def clear_cart(
+def clear_cart(
     request: CartClearRequest,
     user_id: OptionalUserId,
     cart_token: CartToken,

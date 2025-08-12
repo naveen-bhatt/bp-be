@@ -1,6 +1,6 @@
 """Checkout and payment controller."""
 
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import HTTPException, status, Request
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import DatabaseSession, OptionalUserId, CartToken
@@ -15,11 +15,7 @@ from app.schemas.common import SuccessResponse, PaginatedResponse
 # from app.services.checkout_service import CheckoutService
 # from app.services.payment_service import PaymentService
 
-router = APIRouter()
-
-
-@router.post("/orders", response_model=OrderPublic, status_code=status.HTTP_201_CREATED)
-async def create_order(
+def create_order(
     request: OrderCreateRequest,
     user_id: OptionalUserId,
     cart_token: CartToken,
@@ -47,8 +43,7 @@ async def create_order(
     )
 
 
-@router.get("/orders", response_model=PaginatedResponse)
-async def list_orders(
+def list_orders(
     user_id: OptionalUserId,
     db: DatabaseSession
 ) -> PaginatedResponse:
@@ -78,8 +73,7 @@ async def list_orders(
     )
 
 
-@router.get("/orders/{order_id}", response_model=OrderPublic)
-async def get_order(
+def get_order(
     order_id: str,
     user_id: OptionalUserId,
     db: DatabaseSession
@@ -105,8 +99,7 @@ async def get_order(
     )
 
 
-@router.post("/payment-intent", response_model=PaymentIntentResponse)
-async def create_payment_intent(
+def create_payment_intent(
     request: PaymentIntentRequest,
     user_id: OptionalUserId,
     db: DatabaseSession
@@ -132,8 +125,7 @@ async def create_payment_intent(
     )
 
 
-@router.get("/payments/{payment_id}", response_model=PaymentPublic)
-async def get_payment(
+def get_payment(
     payment_id: str,
     user_id: OptionalUserId,
     db: DatabaseSession
@@ -159,8 +151,7 @@ async def get_payment(
     )
 
 
-@router.get("/payments/{payment_id}/status", response_model=PaymentStatus)
-async def get_payment_status(
+def get_payment_status(
     payment_id: str,
     user_id: OptionalUserId,
     db: DatabaseSession
@@ -186,8 +177,7 @@ async def get_payment_status(
     )
 
 
-@router.post("/webhook/stripe", response_model=SuccessResponse)
-async def stripe_webhook(
+def stripe_webhook(
     request: Request,
     db: DatabaseSession
 ) -> SuccessResponse:
@@ -211,8 +201,7 @@ async def stripe_webhook(
     )
 
 
-@router.post("/webhook/razorpay", response_model=SuccessResponse)
-async def razorpay_webhook(
+def razorpay_webhook(
     request: Request,
     db: DatabaseSession
 ) -> SuccessResponse:

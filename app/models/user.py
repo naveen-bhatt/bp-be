@@ -2,10 +2,18 @@
 
 from datetime import datetime
 from typing import Optional, List
-from sqlalchemy import Column, String, Boolean, DateTime, Index
+from sqlalchemy import Column, String, Boolean, DateTime, Index, Enum
 from sqlalchemy.orm import relationship
+import enum
 
 from .base import BaseModel
+
+
+class UserType(enum.Enum):
+    """User type enumeration."""
+    ANONYMOUS = "anonymous"
+    REGISTERED = "registered"
+    SOCIAL = "social"
 
 
 class User(BaseModel):
@@ -25,11 +33,19 @@ class User(BaseModel):
     
     __tablename__ = "users"
     
+    # Current database schema columns
     email = Column(String(255), unique=True, index=True, nullable=False)
-    hashed_password = Column(String(255), nullable=True)  # Nullable for social-only accounts
+    password_hash = Column(String(255), nullable=False)  # Current column name in DB
+    first_name = Column(String(100), nullable=True)
+    last_name = Column(String(100), nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
-    is_superuser = Column(Boolean, default=False, nullable=False)
-    last_login = Column(DateTime, nullable=True)
+    is_admin = Column(Boolean, default=False, nullable=False)  # Current column name in DB
+    email_verified = Column(Boolean, default=False, nullable=False)
+    
+    # Future columns (will be added via migration)
+    # user_type = Column(Enum(UserType), default=UserType.REGISTERED, nullable=False)
+    # is_superuser = Column(Boolean, default=False, nullable=False)
+    # last_login = Column(DateTime, nullable=True)
     
     # Relationships
     social_accounts = relationship("SocialAccount", back_populates="user", cascade="all, delete-orphan")
@@ -39,7 +55,10 @@ class User(BaseModel):
     # Indexes
     __table_args__ = (
         Index("idx_user_email_active", email, is_active),
-        Index("idx_user_last_login", last_login),
+        # Future indexes (will be added via migration)
+        # Index("idx_user_last_login", last_login),
+        # Index("idx_user_type", user_type),
+        # Index("idx_user_type_active", user_type, is_active),
     )
     
     def __repr__(self) -> str:
@@ -48,12 +67,44 @@ class User(BaseModel):
     
     def update_last_login(self) -> None:
         """Update the last login timestamp to now."""
-        self.last_login = datetime.utcnow()
+        # Will be implemented when last_login column is added
+        pass
     
     def is_password_set(self) -> bool:
         """Check if user has a password set."""
-        return self.hashed_password is not None
+        return self.password_hash is not None
     
     def can_login_with_password(self) -> bool:
         """Check if user can login with email/password."""
         return self.is_active and self.is_password_set()
+    
+    def is_anonymous(self) -> bool:
+        """Check if user is anonymous."""
+        # For now, check if email contains 'anonymous' until user_type column is added
+        return self.email and "anonymous_" in self.email and "@temp.local" in self.email
+    
+    def is_registered(self) -> bool:
+        """Check if user is registered."""
+        return not self.is_anonymous()
+    
+    def is_social(self) -> bool:
+        """Check if user is social."""
+        # Will be implemented when user_type column is added
+        return False
+    
+    def convert_to_registered(self, email: str, hashed_password: str) -> None:
+        """Convert anonymous user to registered user."""
+        if not self.is_anonymous():
+            raise ValueError("Can only convert anonymous users")
+        
+        self.email = email
+        self.password_hash = hashed_password
+        self.update_last_login()
+    
+    def convert_to_social(self, email: str) -> None:
+        """Convert anonymous user to social user."""
+        if not self.is_anonymous():
+            raise ValueError("Can only convert anonymous users")
+        
+        self.email = email
+        self.update_last_login()

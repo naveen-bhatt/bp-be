@@ -178,3 +178,43 @@ def create_token_pair(user_data: Dict[str, Any]) -> Dict[str, str]:
         "refresh_token": refresh_token,
         "token_type": "bearer"
     }
+
+
+def create_anonymous_token(user_id: str) -> Dict[str, Any]:
+    """
+    Create an access token for an anonymous user without expiration.
+    
+    Args:
+        user_id: Anonymous user ID.
+        
+    Returns:
+        Dict[str, Any]: Dictionary containing access token information.
+        
+    Example:
+        ```python
+        token_data = create_anonymous_token(str(anonymous_user.id))
+        ```
+    """
+    # Create token payload without expiration for anonymous users
+    to_encode = {
+        "sub": user_id,
+        "user_type": "anonymous",
+        "email": None,
+        "type": "access"
+        # No "exp" field - token never expires
+    }
+    
+    # Create token without expiration
+    access_token = jwt.encode(
+        to_encode, 
+        settings.secret_key, 
+        algorithm=settings.jwt_algorithm
+    )
+    
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "expires_in": None,  # No expiration
+        "user_id": user_id,
+        "user_type": "anonymous"
+    }

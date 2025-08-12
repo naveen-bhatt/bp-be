@@ -1,25 +1,50 @@
 """Authentication controller."""
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import DatabaseSession, CurrentUserId
 from app.schemas.auth import (
     LoginRequest, RegisterRequest, TokenResponse, 
-    RefreshTokenRequest, SocialLoginRequest
+    RefreshTokenRequest, SocialLoginRequest, AnonymousTokenResponse
 )
 from app.schemas.user import UserPublic
 from app.schemas.common import SuccessResponse
 
-# TODO: Import services when implemented
-# from app.services.auth_service import AuthService
+from app.services.auth_service import AuthService
+# TODO: Import social auth service when implemented
 # from app.services.social_auth_service import SocialAuthService
 
-router = APIRouter()
+
+def create_anonymous_user(
+    db: DatabaseSession
+) -> AnonymousTokenResponse:
+    """
+    Create an anonymous user for guest sessions.
+    
+    Args:
+        db: Database session.
+        
+    Returns:
+        AnonymousTokenResponse: Anonymous user token data.
+        
+    Raises:
+        HTTPException: If anonymous user creation fails.
+    """
+    try:
+        auth_service = AuthService(db)
+        token_data = auth_service.create_anonymous_user()
+        
+        return AnonymousTokenResponse(**token_data)
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create anonymous user: {str(e)}"
+        )
 
 
-@router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
-async def register(
+def register(
     request: RegisterRequest,
     db: DatabaseSession
 ) -> TokenResponse:
@@ -43,8 +68,7 @@ async def register(
     )
 
 
-@router.post("/login", response_model=TokenResponse)
-async def login(
+def login(
     request: LoginRequest,
     db: DatabaseSession
 ) -> TokenResponse:
@@ -68,8 +92,7 @@ async def login(
     )
 
 
-@router.post("/refresh", response_model=TokenResponse)
-async def refresh_token(
+def refresh_token(
     request: RefreshTokenRequest,
     db: DatabaseSession
 ) -> TokenResponse:
@@ -93,8 +116,7 @@ async def refresh_token(
     )
 
 
-@router.post("/social", response_model=TokenResponse)
-async def social_login(
+def social_login(
     request: SocialLoginRequest,
     db: DatabaseSession
 ) -> TokenResponse:
@@ -118,8 +140,7 @@ async def social_login(
     )
 
 
-@router.get("/me", response_model=UserPublic)
-async def get_current_user(
+def get_current_user(
     current_user_id: CurrentUserId,
     db: DatabaseSession
 ) -> UserPublic:
@@ -143,8 +164,7 @@ async def get_current_user(
     )
 
 
-@router.post("/logout", response_model=SuccessResponse)
-async def logout(
+def logout(
     current_user_id: CurrentUserId,
     db: DatabaseSession
 ) -> SuccessResponse:

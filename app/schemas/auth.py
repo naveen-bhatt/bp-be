@@ -123,3 +123,25 @@ class PasswordResetConfirm(BaseModel):
             raise ValueError('Password must contain at least one digit')
         
         return v
+
+
+class AnonymousTokenResponse(BaseModel):
+    """Anonymous user token response."""
+    
+    access_token: str = Field(..., description="JWT access token for anonymous user")
+    token_type: str = Field(default="bearer", description="Token type")
+    expires_in: Optional[int] = Field(None, description="Access token expiration in seconds (null for no expiration)")
+    user_id: str = Field(..., description="Anonymous user ID")
+    user_type: str = Field(default="anonymous", description="User type")
+
+
+class AnonymousUserInfo(BaseModel):
+    """Anonymous user information."""
+    
+    id: str = Field(..., description="User ID")
+    user_type: str = Field(..., description="User type")
+    is_active: bool = Field(..., description="Whether user is active")
+    created_at: str = Field(..., description="Creation timestamp")
+    
+    class Config:
+        from_attributes = True

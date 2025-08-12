@@ -5,6 +5,7 @@ from fastapi import FastAPI, APIRouter
 from . import auth_controller, product_controller, cart_controller, checkout_controller
 from app.schemas.common import PaginatedResponse
 from app.schemas.product import ProductDetail
+from app.schemas.auth import AnonymousTokenResponse
 
 # Create main API router
 api_router = APIRouter(prefix="/api/v1")
@@ -12,6 +13,7 @@ api_router = APIRouter(prefix="/api/v1")
 # =============================================================================
 # AUTH ENDPOINTS
 # =============================================================================
+api_router.add_api_route('/auth/anonymous', auth_controller.create_anonymous_user, methods=["POST"], tags=["Auth"], response_model=AnonymousTokenResponse)
 api_router.add_api_route('/auth/register', auth_controller.register, methods=["POST"], tags=["Auth"])
 api_router.add_api_route('/auth/login', auth_controller.login, methods=["POST"], tags=["Auth"])
 api_router.add_api_route('/auth/refresh', auth_controller.refresh_token, methods=["POST"], tags=["Auth"])
