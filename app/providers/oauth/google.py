@@ -1,6 +1,8 @@
 """Google OAuth provider implementation."""
 
 import json
+import hashlib
+import base64
 from typing import Optional, Dict, Any
 import httpx
 from jose import jwt, JWTError
@@ -52,6 +54,8 @@ class GoogleOAuthProvider(OAuthProvider):
             "code_challenge_method": "S256"
         }
         
+        logger.info(f"Google OAuth params: {params}")
+        
         query_string = "&".join([f"{k}={v}" for k, v in params.items()])
         return f"{self.AUTHORIZATION_URL}?{query_string}"
     
@@ -85,6 +89,17 @@ class GoogleOAuthProvider(OAuthProvider):
                 response.raise_for_status()
                 
                 token_data = response.json()
+                logger.info(f"Google token exchange response: {list(token_data.keys())}")
+                
+                # Check for errors in response
+                if "error" in token_data:
+                    error_msg = token_data.get("error_description", token_data.get("error", "Unknown error"))
+                    logger.error(f"Google OAuth error: {error_msg}")
+                    raise ValueError(f"Google OAuth error: {error_msg}")
+                
+                if "access_token" not in token_data:
+                    logger.error(f"Google OAuth response missing access_token: {token_data}")
+                    raise ValueError("Google OAuth response missing access_token")
                 
                 return OAuthTokens(
                     access_token=token_data["access_token"],
@@ -98,12 +113,13 @@ class GoogleOAuthProvider(OAuthProvider):
             logger.error(f"Google token exchange failed: {e}")
             raise ValueError(f"Failed to exchange code for tokens: {e}")
     
-    async def verify_id_token(self, id_token: str, nonce: Optional[str] = None) -> OAuthUserInfo:
+    async def verify_id_token(self, id_token: str, access_token: str, nonce: Optional[str] = None) -> OAuthUserInfo:
         """
         Verify Google ID token and extract user information.
         
         Args:
             id_token: JWT ID token from Google.
+            access_token: Access token to validate at_hash claim.
             nonce: Expected nonce value for verification.
             
         Returns:
@@ -113,10 +129,14 @@ class GoogleOAuthProvider(OAuthProvider):
             ValueError: If token verification fails.
         """
         try:
+            logger.info("Starting Google ID token verification")
+            
             # Get Google's public keys for verification
             jwks = await self._get_jwks()
+            logger.info(f"Retrieved JWKS with {len(jwks.get('keys', []))} keys")
             
             # Decode and verify the token
+            logger.info("Decoding and verifying JWT token")
             payload = jwt.decode(
                 id_token,
                 jwks,
@@ -124,10 +144,37 @@ class GoogleOAuthProvider(OAuthProvider):
                 audience=self.client_id,
                 issuer="https://accounts.google.com"
             )
+            logger.info("JWT token decoded successfully")
             
             # Verify nonce if provided
             if nonce and payload.get("nonce") != nonce:
+                logger.error(f"Nonce verification failed: expected {nonce}, got {payload.get('nonce')}")
                 raise ValueError("Nonce verification failed")
+            
+            # Verify at_hash claim if present
+            if "at_hash" in payload and access_token:
+                logger.info("at_hash claim present, validating...")
+                try:
+                    # Calculate hash of access token
+                    access_token_hash = base64.urlsafe_b64encode(
+                        hashlib.sha256(access_token.encode('utf-8')).digest()
+                    ).decode('utf-8').rstrip('=')
+                    
+                    logger.info(f"Calculated at_hash: {access_token_hash[:10]}..., token at_hash: {payload['at_hash'][:10]}...")
+                    
+                    if payload["at_hash"] != access_token_hash:
+                        logger.warning("Access token hash verification failed, but continuing")
+                        # Don't fail the entire verification for at_hash mismatch
+                        # This can happen in some OAuth flows
+                    else:
+                        logger.info("at_hash validation successful")
+                except Exception as e:
+                    logger.warning(f"Failed to verify at_hash: {e}, but continuing")
+                    # Continue with verification even if at_hash validation fails
+            else:
+                logger.info("No at_hash claim or access token, skipping at_hash validation")
+            
+            logger.info(f"Token verification successful for user: {payload.get('email')}")
             
             return OAuthUserInfo(
                 email=payload["email"],

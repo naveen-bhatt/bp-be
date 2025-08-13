@@ -1,7 +1,7 @@
 """OAuth state storage for managing PKCE flows."""
 
 from typing import Optional, Dict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import asyncio
 from threading import Lock
 
@@ -32,11 +32,12 @@ class OAuthStateStorage:
         Args:
             oauth_state: OAuth state to store.
         """
-        expires_at = datetime.utcnow() + timedelta(minutes=self.ttl_minutes)
+        expires_at = datetime.now(timezone.utc) + timedelta(minutes=self.ttl_minutes)
         
         with self._lock:
             self._storage[oauth_state.state] = (oauth_state, expires_at)
-            logger.info(f"Stored OAuth state: {oauth_state.state[:8]}...")
+            logger.info(f"Stored OAuth state: {oauth_state.state[:8]}... (expires: {expires_at})")
+            logger.info(f"Total states in storage: {len(self._storage)}")
     
     def get_state(self, state: str) -> Optional[OAuthState]:
         """
@@ -49,6 +50,9 @@ class OAuthStateStorage:
             Optional[OAuthState]: OAuth state if found and not expired, None otherwise.
         """
         with self._lock:
+            logger.info(f"Looking for OAuth state: {state[:8]}...")
+            logger.info(f"Available states: {list(self._storage.keys())[:5]}...")
+            
             if state not in self._storage:
                 logger.warning(f"OAuth state not found: {state[:8]}...")
                 return None
@@ -56,16 +60,16 @@ class OAuthStateStorage:
             oauth_state, expires_at = self._storage.pop(state)
             
             # Check if expired
-            if datetime.utcnow() > expires_at:
+            if datetime.now(timezone.utc) > expires_at:
                 logger.warning(f"OAuth state expired: {state[:8]}...")
                 return None
             
-            logger.info(f"Retrieved OAuth state: {state[:8]}...")
+            logger.info(f"Retrieved OAuth state: {state[:8]}... (expires: {expires_at})")
             return oauth_state
     
     def cleanup_expired(self) -> None:
         """Remove expired states from storage."""
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         expired_states = []
         
         with self._lock:
@@ -83,7 +87,7 @@ class OAuthStateStorage:
         """Get storage statistics."""
         with self._lock:
             total_states = len(self._storage)
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
             expired_count = sum(1 for _, expires_at in self._storage.values() if now > expires_at)
             
         return {

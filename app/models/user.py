@@ -50,7 +50,9 @@ class User(BaseModel):
     # Relationships
     social_accounts = relationship("SocialAccount", back_populates="user", cascade="all, delete-orphan")
     carts = relationship("Cart", back_populates="user", cascade="all, delete-orphan")
+    wishlist_items = relationship("WishlistItem", back_populates="user", cascade="all, delete-orphan")
     orders = relationship("Order", back_populates="user", cascade="all, delete-orphan")
+    addresses = relationship("Address", back_populates="user", cascade="all, delete-orphan")
     
     # Indexes
     __table_args__ = (

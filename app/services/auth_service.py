@@ -79,9 +79,13 @@ class AuthService:
                 logger.warning(f"Invalid password for user: {email}")
                 return None
             
-            # Update last login
-            user.update_last_login()
-            self.db.commit()
+            # Update last login (will be implemented when last_login column is added)
+            try:
+                user.update_last_login()
+                self.db.commit()
+            except Exception as e:
+                logger.warning(f"Could not update last login: {e}")
+                # Continue without updating last login
             
             # Create tokens
             user_data = {
@@ -156,7 +160,7 @@ class AuthService:
             logger.error(f"Registration error for user {user_id} with email {email}: {str(e)}")
             raise
     
-    def social_register(self, user_id: str, email: str, provider: str) -> Dict[str, str]:
+    def social_register(self, user_id: str, email: str, provider: str, provider_account_id: str = None) -> Dict[str, str]:
         """
         Register a user via social login by converting an anonymous user.
         
@@ -164,6 +168,7 @@ class AuthService:
             user_id: ID of the anonymous user to convert.
             email: User's email address from social provider.
             provider: Social provider name.
+            provider_account_id: Account ID from the provider (optional).
             
         Returns:
             Dict[str, str]: Token pair for the registered user.
@@ -179,6 +184,19 @@ class AuthService:
             if not user:
                 raise ValueError("User not found or conversion failed")
             
+            # Create social account if provider_account_id is provided
+            if provider_account_id:
+                from app.repositories.social_repository import SocialRepository
+                from app.models.social_account import SocialProvider
+                
+                social_repo = SocialRepository(self.db)
+                social_repo.create(
+                    user_id=str(user.id),
+                    provider=SocialProvider(provider),
+                    provider_account_id=provider_account_id
+                )
+                logger.info(f"Created social account for user {user.id} with provider {provider}")
+            
             # Create tokens
             user_data = {
                 "sub": str(user.id),
@@ -192,6 +210,65 @@ class AuthService:
             
         except Exception as e:
             logger.error(f"Social registration error for user {user_id} with email {email}: {str(e)}")
+            raise
+    
+    def social_login(self, email: str, provider: str, provider_account_id: str) -> Dict[str, str]:
+        """
+        Login a user via social OAuth (existing users).
+        
+        Args:
+            email: User's email address from social provider.
+            provider: Social provider name.
+            provider_account_id: Account ID from the provider.
+            
+        Returns:
+            Dict[str, str]: Token pair for the logged in user.
+            
+        Raises:
+            ValueError: If user not found or social account doesn't exist.
+        """
+        try:
+            logger.info(f"Attempting social login for user with email: {email} (provider: {provider})")
+            
+            # First check if a user with this email exists
+            user = self.user_repo.get_by_email(email)
+            if not user:
+                raise ValueError(f"No user found with email {email}")
+            
+            # Check if user has a social account for this provider
+            from app.repositories.social_repository import SocialRepository
+            from app.models.social_account import SocialProvider
+            
+            social_repo = SocialRepository(self.db)
+            social_account = social_repo.get_by_user_and_provider(
+                user_id=str(user.id),
+                provider=SocialProvider(provider)
+            )
+            
+            if not social_account:
+                raise ValueError(f"User {email} exists but has no social account for provider {provider}")
+            
+            # Update last login (will be implemented when last_login column is added)
+            try:
+                user.update_last_login()
+                self.db.commit()
+            except Exception as e:
+                logger.warning(f"Could not update last login: {e}")
+                # Continue without updating last login
+            
+            # Create tokens
+            user_data = {
+                "sub": str(user.id),
+                "email": user.email,
+                "user_type": getattr(user, 'user_type', 'social').value if hasattr(user, 'user_type') and user.user_type else 'social'
+            }
+            
+            tokens = create_token_pair(user_data)
+            logger.info(f"Successful social login for user: {email}")
+            return tokens
+            
+        except Exception as e:
+            logger.error(f"Social login error for email {email} with provider {provider}: {str(e)}")
             raise
     
     def refresh_access_token(self, refresh_token: str) -> Dict[str, str]:

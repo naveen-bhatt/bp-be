@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import and_
 
 from app.models.social_account import SocialAccount, SocialProvider
+from app.models.user import User
 from app.core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -112,6 +113,30 @@ class SocialRepository:
         return self.db.query(SocialAccount).filter(
             and_(
                 SocialAccount.user_id == user_id,
+                SocialAccount.provider == provider.value
+            )
+        ).first()
+    
+    def get_by_email_and_provider(
+        self,
+        email: str,
+        provider: SocialProvider
+    ) -> Optional[SocialAccount]:
+        """
+        Get social account by email and provider.
+        
+        Args:
+            email: User's email address.
+            provider: OAuth provider.
+            
+        Returns:
+            Optional[SocialAccount]: Social account if found, None otherwise.
+        """
+        return self.db.query(SocialAccount).join(
+            User, SocialAccount.user_id == User.id
+        ).filter(
+            and_(
+                User.email == email,
                 SocialAccount.provider == provider.value
             )
         ).first()

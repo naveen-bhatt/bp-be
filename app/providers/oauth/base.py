@@ -102,12 +102,13 @@ class OAuthProvider(ABC):
         pass
     
     @abstractmethod
-    async def verify_id_token(self, id_token: str, nonce: Optional[str] = None) -> OAuthUserInfo:
+    async def verify_id_token(self, id_token: str, access_token: str, nonce: Optional[str] = None) -> OAuthUserInfo:
         """
         Verify ID token and extract user information.
         
         Args:
             id_token: JWT ID token from OAuth provider.
+            access_token: Access token to validate at_hash claim.
             nonce: Expected nonce value for verification.
             
         Returns:

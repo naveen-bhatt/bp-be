@@ -3,7 +3,7 @@
 from fastapi import HTTPException, status, Request
 from sqlalchemy.orm import Session
 
-from app.core.dependencies import DatabaseSession, OptionalUserId, CartToken
+from app.core.dependencies import DatabaseSession, OptionalUserId
 from app.schemas.order import OrderCreateRequest, OrderPublic, OrderSummary
 from app.schemas.payment import (
     PaymentIntentRequest, PaymentIntentResponse, PaymentPublic,
@@ -18,7 +18,6 @@ from app.schemas.common import SuccessResponse, PaginatedResponse
 def create_order(
     request: OrderCreateRequest,
     user_id: OptionalUserId,
-    cart_token: CartToken,
     db: DatabaseSession
 ) -> OrderPublic:
     """

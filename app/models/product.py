@@ -86,7 +86,8 @@ class Product(BaseModel):
     base_notes = Column(JSON, nullable=True, comment="Base fragrance notes")
     
     # Relationships
-    cart_items = relationship("CartItem", back_populates="product")
+    carts = relationship("Cart", back_populates="product")
+    wishlist_items = relationship("WishlistItem", back_populates="product")
     order_items = relationship("OrderItem", back_populates="product")
     creator = relationship("User", foreign_keys=[created_by])
     updater = relationship("User", foreign_keys=[updated_by])

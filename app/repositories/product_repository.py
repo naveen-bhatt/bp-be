@@ -1,6 +1,6 @@
 """Product repository for database operations."""
 
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Dict, Any
 from decimal import Decimal
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_, func
@@ -326,3 +326,32 @@ class ProductRepository:
             query = query.filter(Product.id != exclude_id)
         
         return query.first() is not None
+        
+    def to_list_schema(self, product: Product) -> Dict[str, Any]:
+        """
+        Convert Product model to dictionary for list display.
+        
+        Args:
+            product: Product model instance.
+            
+        Returns:
+            Dict[str, Any]: Dictionary with product data.
+        """
+        if not product:
+            return None
+            
+        return {
+            "id": product.id,
+            "name": product.name,
+            "slug": product.slug,
+            "price": str(product.price),
+            "currency": product.currency,
+            "main_image_url": product.main_image_url,
+            "quantity": product.quantity,
+            "is_active": product.is_active,
+            "brand": product.brand,
+            "concentration": product.concentration,
+            "volume_ml": product.volume_ml,
+            "gender": product.gender,
+            "rank_of_product": product.rank_of_product
+        }

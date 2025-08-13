@@ -2,10 +2,13 @@
 
 from fastapi import FastAPI, APIRouter
 
-from . import auth_controller, product_controller, cart_controller, checkout_controller, oauth_controller
-from app.schemas.common import PaginatedResponse
+from . import auth_controller, product_controller, cart_controller, checkout_controller, oauth_controller, wishlist_controller, address_controller
+from app.schemas.common import PaginatedResponse, SuccessResponse
 from app.schemas.product import ProductDetail
 from app.schemas.auth import AnonymousTokenResponse
+from app.schemas.cart import CartPublic, CartSummary
+from app.schemas.wishlist import WishlistResponse
+from app.schemas.address import AddressPublic, AddressListResponse
 
 # Create main API router
 api_router = APIRouter(prefix="/api/v1")
@@ -38,13 +41,28 @@ api_router.add_api_route('/products/{product_id}', product_controller.delete_pro
 # =============================================================================
 # CART ENDPOINTS
 # =============================================================================
-api_router.add_api_route('/cart', cart_controller.get_cart, methods=["GET"], tags=["Cart"])
-api_router.add_api_route('/cart/summary', cart_controller.get_cart_summary, methods=["GET"], tags=["Cart"])
-api_router.add_api_route('/cart/items', cart_controller.add_to_cart, methods=["POST"], tags=["Cart"])
-api_router.add_api_route('/cart/items/{item_id}', cart_controller.update_cart_item, methods=["PATCH"], tags=["Cart"])
-api_router.add_api_route('/cart/items/{item_id}', cart_controller.remove_cart_item, methods=["DELETE"], tags=["Cart"])
-api_router.add_api_route('/cart/merge', cart_controller.merge_guest_cart, methods=["POST"], tags=["Cart"])
-api_router.add_api_route('/cart/clear', cart_controller.clear_cart, methods=["POST"], tags=["Cart"])
+api_router.add_api_route('/cart', cart_controller.get_cart, methods=["GET"], tags=["Cart"], response_model=CartPublic)
+# api_router.add_api_route('/cart/summary', cart_controller.get_cart_summary, methods=["GET"], tags=["Cart"], response_model=CartSummary)
+api_router.add_api_route('/cart/items', cart_controller.add_to_cart, methods=["POST"], tags=["Cart"], response_model=CartPublic)
+api_router.add_api_route('/cart/items/{product_id}', cart_controller.update_cart_item, methods=["PATCH"], tags=["Cart"], response_model=CartPublic)
+api_router.add_api_route('/cart/items/{product_id}', cart_controller.remove_cart_item, methods=["DELETE"], tags=["Cart"], response_model=CartPublic)
+# api_router.add_api_route('/cart/clear', cart_controller.clear_cart, methods=["POST"], tags=["Cart"], response_model=SuccessResponse)
+
+# =============================================================================
+# WISHLIST ENDPOINTS
+# =============================================================================
+api_router.add_api_route('/wishlist', wishlist_controller.get_wishlist, methods=["GET"], tags=["Wishlist"], response_model=WishlistResponse)
+api_router.add_api_route('/wishlist/items/{product_id}', wishlist_controller.toggle_wishlist, methods=["PATCH"], tags=["Wishlist"], response_model=WishlistResponse)
+# api_router.add_api_route('/wishlist/clear', wishlist_controller.clear_wishlist, methods=["POST"], tags=["Wishlist"], response_model=SuccessResponse)
+
+# =============================================================================
+# ADDRESS ENDPOINTS
+# =============================================================================
+api_router.add_api_route('/addresses', address_controller.list_addresses, methods=["GET"], tags=["Address"], response_model=AddressListResponse)
+api_router.add_api_route('/addresses', address_controller.create_address, methods=["POST"], tags=["Address"], response_model=AddressPublic)
+api_router.add_api_route('/addresses/{address_id}', address_controller.get_address, methods=["GET"], tags=["Address"], response_model=AddressPublic)
+api_router.add_api_route('/addresses/{address_id}', address_controller.update_address, methods=["PUT"], tags=["Address"], response_model=AddressPublic)
+api_router.add_api_route('/addresses/{address_id}', address_controller.delete_address, methods=["DELETE"], tags=["Address"], response_model=SuccessResponse)
 
 # =============================================================================
 # PAYMENT ENDPOINTS

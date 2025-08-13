@@ -96,12 +96,14 @@ class GitHubOAuthProvider(OAuthProvider):
             logger.error(f"GitHub token exchange failed: {e}")
             raise ValueError(f"Failed to exchange code for tokens: {e}")
     
-    async def verify_id_token(self, id_token: str) -> OAuthUserInfo:
+    async def verify_id_token(self, id_token: str, access_token: str, nonce: Optional[str] = None) -> OAuthUserInfo:
         """
         GitHub doesn't provide ID tokens, so this is not supported.
         
         Args:
             id_token: Not used for GitHub.
+            access_token: Not used for GitHub.
+            nonce: Not used for GitHub.
             
         Raises:
             NotImplementedError: GitHub doesn't use ID tokens.

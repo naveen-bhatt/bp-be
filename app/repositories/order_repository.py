@@ -6,7 +6,6 @@ from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import and_, desc
 
 from app.models.order import Order, OrderItem, OrderStatus
-from app.models.cart import Cart
 from app.core.logging import get_logger
 
 logger = get_logger(__name__)

@@ -143,17 +143,7 @@ async def get_admin_user(
     return current_user_id
 
 
-def get_cart_token(request: Request) -> Optional[str]:
-    """
-    Extract cart token from headers for guest carts.
-    
-    Args:
-        request: FastAPI request object.
-        
-    Returns:
-        Optional[str]: Cart token if present.
-    """
-    return request.headers.get("X-Cart-Token")
+# Cart token dependency removed as we're using anonymous user tokens for all users
 
 
 def get_anonymous_user_id(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
@@ -214,4 +204,3 @@ OptionalUserId = Annotated[Optional[str], Depends(get_current_user_optional)]
 AdminUserId = Annotated[str, Depends(get_admin_user)]
 AnonymousUserId = Annotated[str, Depends(get_anonymous_user_id)]
 Pagination = Annotated[PaginationParams, Depends(PaginationParams)]
-CartToken = Annotated[Optional[str], Depends(get_cart_token)]

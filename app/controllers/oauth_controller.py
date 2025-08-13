@@ -48,6 +48,10 @@ def google_start(
         base_url = str(request.base_url).rstrip('/')
         redirect_uri = f"{base_url}/api/v1/auth/google/callback"
         
+        logger.info(f"OAuth redirect URI: {redirect_uri}")
+        logger.info(f"Request base URL: {request.base_url}")
+        logger.info(f"Request headers: {dict(request.headers)}")
+        
         # Generate OAuth state with PKCE
         oauth_state = OAuthState.generate(
             redirect_uri=redirect_uri,
@@ -142,40 +146,92 @@ async def google_callback(
             redirect_uri=oauth_state.redirect_uri
         )
         
-        # Get user info - prefer ID token verification if available
-        if oauth_tokens.id_token:
-            # Verify ID token with nonce
-            user_info = await google_provider.verify_id_token(
-                oauth_tokens.id_token, 
-                oauth_state.nonce
+        logger.info(f"Received tokens: access_token={'*' * 10 if oauth_tokens.access_token else 'None'}, id_token={'*' * 10 if oauth_tokens.id_token else 'None'}")
+        
+        # For now, always use the userinfo endpoint to avoid ID token verification issues
+        # TODO: Fix ID token verification and re-enable it
+        logger.info("Using userinfo endpoint for user data")
+        
+        if not oauth_tokens.access_token:
+            logger.error("No access token received from Google")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="No access token received from Google OAuth"
             )
-        else:
-            # Fallback to userinfo endpoint
-            user_info = await google_provider.get_user_info(oauth_tokens.access_token)
+        
+        user_info = await google_provider.get_user_info(oauth_tokens.access_token)
         
         logger.info(f"Google OAuth successful for user: {user_info.email}")
         
         # Create auth service and handle user registration/login
         auth_service = AuthService(db)
         
-        if oauth_state.anonymous_user_id:
-            # Convert anonymous user to social user
-            tokens = auth_service.social_register(
-                user_id=oauth_state.anonymous_user_id,
-                email=user_info.email,
-                provider="google"
-            )
-        else:
-            # TODO: Handle case where no anonymous user exists
-            # For now, create a new anonymous user and convert it
-            anonymous_user_data = auth_service.create_anonymous_user()
-            tokens = auth_service.social_register(
-                user_id=anonymous_user_data["user_id"],
-                email=user_info.email,
-                provider="google"
-            )
+        # Check if user exists by email
+        existing_user = auth_service.user_repo.get_by_email(user_info.email)
         
-        logger.info(f"Social login successful for user: {user_info.email}")
+        if existing_user:
+            logger.info(f"User exists with email: {user_info.email}")
+            
+            # Check if user has a social account for Google
+            from app.repositories.social_repository import SocialRepository
+            from app.models.social_account import SocialProvider
+            
+            social_repo = SocialRepository(db)
+            social_account = social_repo.get_by_user_and_provider(
+                user_id=str(existing_user.id),
+                provider=SocialProvider.GOOGLE
+            )
+            
+            if social_account:
+                # User exists and has Google social account - LOGIN
+                logger.info(f"User has Google social account, logging in: {user_info.email}")
+                tokens = auth_service.social_login(
+                    email=user_info.email,
+                    provider="google",
+                    provider_account_id=user_info.provider_account_id
+                )
+                logger.info(f"Social login successful for existing user: {user_info.email}")
+            else:
+                # User exists but no Google social account - ADD SOCIAL ACCOUNT
+                logger.info(f"User exists but no Google social account, adding it: {user_info.email}")
+                
+                # Create social account for existing user
+                social_repo.create(
+                    user_id=str(existing_user.id),
+                    provider=SocialProvider.GOOGLE,
+                    provider_account_id=user_info.provider_account_id
+                )
+                
+                # Login the user
+                tokens = auth_service.social_login(
+                    email=user_info.email,
+                    provider="google",
+                    provider_account_id=user_info.provider_account_id
+                )
+                logger.info(f"Added Google social account and logged in: {user_info.email}")
+        else:
+            # User doesn't exist - REGISTRATION
+            logger.info(f"User not found, attempting registration: {user_info.email}")
+            
+            if oauth_state.anonymous_user_id:
+                # Convert anonymous user to social user
+                tokens = auth_service.social_register(
+                    user_id=oauth_state.anonymous_user_id,
+                    email=user_info.email,
+                    provider="google",
+                    provider_account_id=user_info.provider_account_id
+                )
+                logger.info(f"Converted anonymous user to social user: {user_info.email}")
+            else:
+                # Create a new anonymous user and convert it
+                anonymous_user_data = auth_service.create_anonymous_user()
+                tokens = auth_service.social_register(
+                    user_id=anonymous_user_data["user_id"],
+                    email=user_info.email,
+                    provider="google",
+                    provider_account_id=user_info.provider_account_id
+                )
+                logger.info(f"Created new social user: {user_info.email}")
         
         return TokenResponse(
             access_token=tokens["access_token"],

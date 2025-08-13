@@ -1,70 +1,89 @@
 """Cart controller."""
 
-from fastapi import HTTPException, status, Request
+from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.core.dependencies import DatabaseSession, OptionalUserId, CartToken
+from app.core.dependencies import DatabaseSession, OptionalUserId
 from app.schemas.cart import (
     AddToCartRequest, UpdateCartItemRequest, CartPublic,
-    CartSummary, CartMergeRequest, CartClearRequest
+    CartSummary, CartClearRequest
 )
 from app.schemas.common import SuccessResponse
-
-# TODO: Import services when implemented
-# from app.services.cart_service import CartService
+from app.services.cart_service import CartService
 
 def get_cart(
-    request: Request,
     user_id: OptionalUserId,
-    cart_token: CartToken,
     db: DatabaseSession
 ) -> CartPublic:
     """
-    Get current user's cart or guest cart.
+    Get current user's cart.
     
     Args:
-        request: FastAPI request object.
-        user_id: Optional user ID from JWT.
-        cart_token: Optional cart token for guest carts.
+        user_id: User ID from JWT token (anonymous or registered).
         db: Database session.
         
     Returns:
         CartPublic: Current cart with items.
     """
-    # TODO: Implement with CartService
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Get cart endpoint not yet implemented"
-    )
+    try:
+        if not user_id:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authentication required to access cart"
+            )
+            
+        cart_service = CartService(db)
+        return cart_service.get_cart(user_id=user_id)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get cart: {str(e)}"
+        )
 
 
 def get_cart_summary(
     user_id: OptionalUserId,
-    cart_token: CartToken,
     db: DatabaseSession
 ) -> CartSummary:
     """
     Get cart summary (totals only).
     
     Args:
-        user_id: Optional user ID from JWT.
-        cart_token: Optional cart token for guest carts.
+        user_id: User ID from JWT token (anonymous or registered).
         db: Database session.
         
     Returns:
         CartSummary: Cart totals.
     """
-    # TODO: Implement with CartService
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Get cart summary endpoint not yet implemented"
-    )
+    try:
+        if not user_id:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authentication required to access cart summary"
+            )
+            
+        cart_service = CartService(db)
+        return cart_service.get_cart_summary(user_id=user_id)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get cart summary: {str(e)}"
+        )
 
 
 def add_to_cart(
     request: AddToCartRequest,
     user_id: OptionalUserId,
-    cart_token: CartToken,
     db: DatabaseSession
 ) -> CartPublic:
     """
@@ -72,8 +91,7 @@ def add_to_cart(
     
     Args:
         request: Add to cart data.
-        user_id: Optional user ID from JWT.
-        cart_token: Optional cart token for guest carts.
+        user_id: User ID from JWT token (anonymous or registered).
         db: Database session.
         
     Returns:
@@ -82,28 +100,43 @@ def add_to_cart(
     Raises:
         HTTPException: If add to cart fails.
     """
-    # TODO: Implement with CartService
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Add to cart endpoint not yet implemented"
-    )
+    try:
+        if not user_id:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authentication required to add items to cart"
+            )
+            
+        cart_service = CartService(db)
+        return cart_service.add_to_cart(
+            product_id=request.product_id,
+            quantity=request.quantity,
+            user_id=user_id
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to add item to cart: {str(e)}"
+        )
 
 
 def update_cart_item(
-    item_id: str,
-    request: UpdateCartItemRequest,
+    product_id: str,
     user_id: OptionalUserId,
-    cart_token: CartToken,
     db: DatabaseSession
 ) -> CartPublic:
     """
     Update cart item quantity.
     
     Args:
-        item_id: Cart item ID to update.
+        product_id: Product ID to update.
         request: Update data.
-        user_id: Optional user ID from JWT.
-        cart_token: Optional cart token for guest carts.
+        user_id: User ID from JWT token (anonymous or registered).
         db: Database session.
         
     Returns:
@@ -112,26 +145,41 @@ def update_cart_item(
     Raises:
         HTTPException: If update fails.
     """
-    # TODO: Implement with CartService
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Update cart item endpoint not yet implemented"
-    )
+    try:
+        if not user_id:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authentication required to update cart items"
+            )
+            
+        cart_service = CartService(db)
+        return cart_service.update_cart_item(
+            product_id=product_id,
+            user_id=user_id
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update cart item: {str(e)}"
+        )
 
 
 def remove_cart_item(
-    item_id: str,
+    product_id: str,
     user_id: OptionalUserId,
-    cart_token: CartToken,
     db: DatabaseSession
 ) -> CartPublic:
     """
     Remove item from cart.
     
     Args:
-        item_id: Cart item ID to remove.
-        user_id: Optional user ID from JWT.
-        cart_token: Optional cart token for guest carts.
+        product_id: Product ID to remove.
+        user_id: User ID from JWT token (anonymous or registered).
         db: Database session.
         
     Returns:
@@ -140,49 +188,38 @@ def remove_cart_item(
     Raises:
         HTTPException: If removal fails.
     """
-    # TODO: Implement with CartService
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Remove cart item endpoint not yet implemented"
-    )
-
-
-def merge_guest_cart(
-    request: CartMergeRequest,
-    user_id: OptionalUserId,
-    db: DatabaseSession
-) -> CartPublic:
-    """
-    Merge guest cart into user cart (on login).
-    
-    Args:
-        request: Cart merge data.
-        user_id: User ID from JWT.
-        db: Database session.
-        
-    Returns:
-        CartPublic: Merged cart.
-        
-    Raises:
-        HTTPException: If merge fails.
-    """
-    if not user_id:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication required for cart merge"
+    try:
+        if not user_id:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authentication required to remove cart items"
+            )
+            
+        cart_service = CartService(db)
+        return cart_service.remove_cart_item(
+            product_id=product_id,
+            user_id=user_id
         )
-    
-    # TODO: Implement with CartService
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Merge cart endpoint not yet implemented"
-    )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to remove cart item: {str(e)}"
+        )
+
+
+# Note: merge_guest_cart method is no longer needed since we're using a single user ID
+# for both anonymous and registered users. When a user registers, their cart
+# is already associated with their user ID.
 
 
 def clear_cart(
     request: CartClearRequest,
     user_id: OptionalUserId,
-    cart_token: CartToken,
     db: DatabaseSession
 ) -> SuccessResponse:
     """
@@ -190,8 +227,7 @@ def clear_cart(
     
     Args:
         request: Clear cart confirmation.
-        user_id: Optional user ID from JWT.
-        cart_token: Optional cart token for guest carts.
+        user_id: User ID from JWT token (anonymous or registered).
         db: Database session.
         
     Returns:
@@ -200,8 +236,25 @@ def clear_cart(
     Raises:
         HTTPException: If clear fails.
     """
-    # TODO: Implement with CartService
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Clear cart endpoint not yet implemented"
-    )
+    try:
+        if not user_id:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authentication required to clear cart"
+            )
+            
+        # Confirmation is validated by pydantic
+        cart_service = CartService(db)
+        cart_service.clear_cart(user_id=user_id)
+        
+        return SuccessResponse(message="Cart cleared successfully")
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to clear cart: {str(e)}"
+        )
