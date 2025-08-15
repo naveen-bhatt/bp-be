@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.core.dependencies import DatabaseSession, OptionalUserId
 from app.schemas.address import (
-    AddressCreate, AddressUpdate, AddressPublic, AddressListResponse
+     AddressListResponse, Address
 )
 from app.schemas.common import SuccessResponse
 from app.services.address_service import AddressService
@@ -50,7 +50,7 @@ def get_address(
     address_id: str,
     user_id: OptionalUserId,
     db: DatabaseSession
-) -> AddressPublic:
+) -> Address:
     """
     Get address by ID.
     
@@ -60,7 +60,7 @@ def get_address(
         db: Database session.
         
     Returns:
-        AddressPublic: Address details.
+        Address: Address details.
     """
     try:
         if not user_id:
@@ -84,10 +84,10 @@ def get_address(
 
 
 def create_address(
-    request: AddressCreate,
+    request: Address,
     user_id: OptionalUserId,
     db: DatabaseSession
-) -> AddressPublic:
+) -> Address:
     """
     Create a new address.
     
@@ -97,7 +97,7 @@ def create_address(
         db: Database session.
         
     Returns:
-        AddressPublic: Created address.
+        Address: Created address.
     """
     try:
         if not user_id:
@@ -109,11 +109,7 @@ def create_address(
         address_service = AddressService(db)
         return address_service.create_address(
             user_id=user_id,
-            pincode=request.pincode,
-            street1=request.street1,
-            street2=request.street2,
-            landmark=request.landmark,
-            phone_number=request.phone_number
+            address_data=request
         )
     except ValueError as e:
         raise HTTPException(
@@ -129,10 +125,10 @@ def create_address(
 
 def update_address(
     address_id: str,
-    request: AddressUpdate,
+    request: Address,
     user_id: OptionalUserId,
     db: DatabaseSession
-) -> AddressPublic:
+) -> Address:
     """
     Update address.
     
@@ -143,7 +139,7 @@ def update_address(
         db: Database session.
         
     Returns:
-        AddressPublic: Updated address.
+        Address: Updated address.
     """
     try:
         if not user_id:
@@ -156,11 +152,7 @@ def update_address(
         return address_service.update_address(
             user_id=user_id,
             address_id=address_id,
-            pincode=request.pincode,
-            street1=request.street1,
-            street2=request.street2,
-            landmark=request.landmark,
-            phone_number=request.phone_number
+            address_data=request
         )
     except ValueError as e:
         raise HTTPException(

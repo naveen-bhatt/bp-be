@@ -3,7 +3,7 @@
 from typing import Optional
 from fastapi import HTTPException, status, Request, Response
 from fastapi.responses import RedirectResponse
-from urllib.parse import urlencode
+from urllib.parse import urlencode, quote
 
 from app.core.dependencies import DatabaseSession, AnonymousUserId
 from app.core.oauth_storage import get_oauth_storage
@@ -12,7 +12,6 @@ from app.core.logging import get_logger
 from app.providers.oauth.base import OAuthState
 from app.providers.oauth.google import GoogleOAuthProvider
 from app.services.auth_service import AuthService
-from app.schemas.auth import TokenResponse
 
 logger = get_logger(__name__)
 
@@ -88,7 +87,7 @@ async def google_callback(
     code: Optional[str] = None,
     state: Optional[str] = None,
     error: Optional[str] = None
-) -> TokenResponse:
+) -> RedirectResponse:
     """
     Handle Google OAuth callback.
     
@@ -100,7 +99,7 @@ async def google_callback(
         error: Error from Google OAuth.
         
     Returns:
-        TokenResponse: JWT tokens for authenticated user.
+        RedirectResponse: Redirect to frontend with authentication tokens.
         
     Raises:
         HTTPException: If OAuth callback processing fails.
@@ -111,26 +110,40 @@ async def google_callback(
         # Check for OAuth errors
         if error:
             logger.warning(f"Google OAuth error: {error}")
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Google OAuth error: {error}"
-            )
+            # Redirect to frontend with error
+            frontend_url = f"{settings.frontend_url}/auth/google/callback"
+            error_params = {
+                "success": "false",
+                "error": error
+            }
+            error_redirect_url = f"{frontend_url}?{urlencode(error_params)}"
+            return RedirectResponse(url=error_redirect_url, status_code=status.HTTP_302_FOUND)
         
         if not code or not state:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Missing code or state parameter"
-            )
+            logger.warning("Missing code or state parameter")
+            # Redirect to frontend with error
+            frontend_url = f"{settings.frontend_url}/auth/google/callback"
+            error_params = {
+                "success": "false",
+                "error": "Missing OAuth parameters"
+            }
+            error_redirect_url = f"{frontend_url}?{urlencode(error_params)}"
+            return RedirectResponse(url=error_redirect_url, status_code=status.HTTP_302_FOUND)
         
         # Retrieve and validate stored state
         oauth_storage = get_oauth_storage()
         oauth_state = oauth_storage.get_state(state)
         
         if not oauth_state:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid or expired state parameter"
-            )
+            logger.warning("Invalid or expired state parameter")
+            # Redirect to frontend with error
+            frontend_url = f"{settings.frontend_url}/auth/google/callback"
+            error_params = {
+                "success": "false",
+                "error": "Invalid or expired OAuth state"
+            }
+            error_redirect_url = f"{frontend_url}?{urlencode(error_params)}"
+            return RedirectResponse(url=error_redirect_url, status_code=status.HTTP_302_FOUND)
         
         # Create Google provider
         google_provider = GoogleOAuthProvider(
@@ -154,10 +167,14 @@ async def google_callback(
         
         if not oauth_tokens.access_token:
             logger.error("No access token received from Google")
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="No access token received from Google OAuth"
-            )
+            # Redirect to frontend with error
+            frontend_url = f"{settings.frontend_url}/auth/google/callback"
+            error_params = {
+                "success": "false",
+                "error": "No access token received from Google"
+            }
+            error_redirect_url = f"{frontend_url}?{urlencode(error_params)}"
+            return RedirectResponse(url=error_redirect_url, status_code=status.HTTP_302_FOUND)
         
         user_info = await google_provider.get_user_info(oauth_tokens.access_token)
         
@@ -233,12 +250,24 @@ async def google_callback(
                 )
                 logger.info(f"Created new social user: {user_info.email}")
         
-        return TokenResponse(
-            access_token=tokens["access_token"],
-            refresh_token=tokens["refresh_token"],
-            token_type=tokens["token_type"],
-            expires_in=1800  # 30 minutes in seconds
-        )
+        # Build frontend redirect URL with tokens
+        frontend_url = f"{settings.frontend_url}/auth/google/callback"
+        
+        # Create query parameters for the frontend
+        query_params = {
+            "success": "true",
+            "access_token": quote(tokens["access_token"], safe=''),
+            "refresh_token": quote(tokens["refresh_token"], safe=''),
+            "token_type": tokens["token_type"],
+            "expires_in": str(tokens.get("expires_in", 1800)),
+            "user_email": quote(user_info.email, safe='')
+        }
+        
+        # Build the full redirect URL
+        redirect_url = f"{frontend_url}?{urlencode(query_params)}"
+        
+        logger.info(f"Redirecting to frontend: {frontend_url}")
+        return RedirectResponse(url=redirect_url, status_code=status.HTTP_302_FOUND)
         
     except HTTPException:
         # Re-raise HTTP exceptions

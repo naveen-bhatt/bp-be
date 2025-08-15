@@ -168,6 +168,50 @@ def update_cart_item(
             detail=f"Failed to update cart item: {str(e)}"
         )
 
+def clear_a_product_from_cart(
+    product_id: str,
+    user_id: OptionalUserId,
+    db: DatabaseSession
+) -> CartPublic:
+    """
+    Completely remove a product from cart regardless of quantity.
+    
+    Args:
+        product_id: Product ID to remove completely.
+        user_id: User ID from JWT token (anonymous or registered).
+        db: Database session.
+        
+    Returns:
+        CartPublic: Updated cart.
+        
+    Raises:
+        HTTPException: If removal fails.
+    """
+    try:
+        if not user_id:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authentication required to remove cart items"
+            )
+            
+        cart_service = CartService(db)
+        return cart_service.clear_product_from_cart(
+            product_id=product_id,
+            user_id=user_id
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to remove product from cart: {str(e)}"
+        )
+
+
+
 
 def remove_cart_item(
     product_id: str,

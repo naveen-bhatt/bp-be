@@ -1,6 +1,8 @@
 """Central router with all endpoints organized by section."""
 
+from email.headerregistry import Address
 from fastapi import FastAPI, APIRouter
+from fastapi.responses import RedirectResponse
 
 from . import auth_controller, product_controller, cart_controller, checkout_controller, oauth_controller, wishlist_controller, address_controller
 from app.schemas.common import PaginatedResponse, SuccessResponse
@@ -8,7 +10,7 @@ from app.schemas.product import ProductDetail
 from app.schemas.auth import AnonymousTokenResponse
 from app.schemas.cart import CartPublic, CartSummary
 from app.schemas.wishlist import WishlistResponse
-from app.schemas.address import AddressPublic, AddressListResponse
+from app.schemas.address import AddressListResponse, Address
 
 # Create main API router
 api_router = APIRouter(prefix="/api/v1")
@@ -26,7 +28,7 @@ api_router.add_api_route('/auth/logout', auth_controller.logout, methods=["POST"
 
 # Google OAuth endpoints
 api_router.add_api_route('/auth/google/start', oauth_controller.google_start, methods=["GET"], tags=["Auth", "OAuth"])
-api_router.add_api_route('/auth/google/callback', oauth_controller.google_callback, methods=["GET"], tags=["Auth", "OAuth"])
+api_router.add_api_route('/auth/google/callback', oauth_controller.google_callback, methods=["GET"], tags=["Auth", "OAuth"], response_class=RedirectResponse)
 
 # =============================================================================
 # PRODUCT ENDPOINTS
@@ -46,6 +48,7 @@ api_router.add_api_route('/cart', cart_controller.get_cart, methods=["GET"], tag
 api_router.add_api_route('/cart/items', cart_controller.add_to_cart, methods=["POST"], tags=["Cart"], response_model=CartPublic)
 api_router.add_api_route('/cart/items/{product_id}', cart_controller.update_cart_item, methods=["PATCH"], tags=["Cart"], response_model=CartPublic)
 api_router.add_api_route('/cart/items/{product_id}', cart_controller.remove_cart_item, methods=["DELETE"], tags=["Cart"], response_model=CartPublic)
+api_router.add_api_route('/cart/items/{product_id}/clear', cart_controller.clear_a_product_from_cart, methods=["DELETE"], tags=["Cart"], response_model=CartPublic)
 # api_router.add_api_route('/cart/clear', cart_controller.clear_cart, methods=["POST"], tags=["Cart"], response_model=SuccessResponse)
 
 # =============================================================================
@@ -59,9 +62,9 @@ api_router.add_api_route('/wishlist/items/{product_id}', wishlist_controller.tog
 # ADDRESS ENDPOINTS
 # =============================================================================
 api_router.add_api_route('/addresses', address_controller.list_addresses, methods=["GET"], tags=["Address"], response_model=AddressListResponse)
-api_router.add_api_route('/addresses', address_controller.create_address, methods=["POST"], tags=["Address"], response_model=AddressPublic)
-api_router.add_api_route('/addresses/{address_id}', address_controller.get_address, methods=["GET"], tags=["Address"], response_model=AddressPublic)
-api_router.add_api_route('/addresses/{address_id}', address_controller.update_address, methods=["PUT"], tags=["Address"], response_model=AddressPublic)
+api_router.add_api_route('/addresses', address_controller.create_address, methods=["POST"], tags=["Address"], response_model=Address)
+api_router.add_api_route('/addresses/{address_id}', address_controller.get_address, methods=["GET"], tags=["Address"], response_model=Address)
+api_router.add_api_route('/addresses/{address_id}', address_controller.update_address, methods=["PUT"], tags=["Address"], response_model=Address)
 api_router.add_api_route('/addresses/{address_id}', address_controller.delete_address, methods=["DELETE"], tags=["Address"], response_model=SuccessResponse)
 
 # =============================================================================

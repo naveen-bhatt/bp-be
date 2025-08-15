@@ -129,7 +129,7 @@ class CartRepository:
     
     def remove_item(self, cart_id: str) -> None:
         """
-        Remove item from cart.
+        Remove item from cart (decrease quantity by 1).
         
         Args:
             cart_id: Cart ID.
@@ -139,16 +139,37 @@ class CartRepository:
         """
         stmt = select(Cart).where(Cart.id == cart_id)
         cart_item = self.db.execute(stmt).scalars().first()
+        if not cart_item:
+            raise ValueError(f"Cart item not found: {cart_id}")
+        
         cart_item.quantity -= 1
         if cart_item.quantity <= 0:
             self.db.delete(cart_item)
             self.db.commit()
             return
         
-        
         self.db.commit()
         self.db.refresh(cart_item)
         return cart_item
+    
+    def clear_product_from_cart(self, cart_id: str) -> None:
+        """
+        Completely remove a product from cart regardless of quantity.
+        
+        Args:
+            cart_id: Cart ID.
+            
+        Raises:
+            ValueError: If item not found.
+        """
+        stmt = select(Cart).where(Cart.id == cart_id)
+        cart_item = self.db.execute(stmt).scalars().first()
+        if not cart_item:
+            raise ValueError(f"Cart item not found: {cart_id}")
+        
+        # Completely remove the item regardless of quantity
+        self.db.delete(cart_item)
+        self.db.commit()
     
     def clear_cart(self, user_id: str) -> None:
         """

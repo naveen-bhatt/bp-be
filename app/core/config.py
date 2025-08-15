@@ -28,6 +28,12 @@ class Settings(BaseSettings):
         description="Comma-separated CORS origins"
     )
     
+    # Frontend
+    frontend_url: str = Field(
+        default="http://localhost:3000",
+        description="Frontend application URL for OAuth redirects"
+    )
+    
     # OAuth Providers
     google_client_id: Optional[str] = Field(default=None, description="Google OAuth client ID")
     google_client_secret: Optional[str] = Field(default=None, description="Google OAuth client secret")

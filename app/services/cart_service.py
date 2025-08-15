@@ -114,10 +114,10 @@ class CartService:
     
     def remove_cart_item(self, product_id: str, user_id: str) -> CartPublic:
         """
-        Remove item from cart.
+        Remove item from cart (decrease quantity by 1).
         
         Args:
-            item_id: Cart item ID.
+            product_id: Product ID.
             user_id: User ID (anonymous or registered).
             
         Returns:
@@ -131,8 +131,36 @@ class CartService:
         if not cart_item or cart_item.user_id != user_id:
             raise ValueError(f"Item {product_id} not found in your cart")
         
-        # Remove item
+        # Remove item (decrease quantity by 1)
         self.cart_repo.remove_item(cart_id=cart_item.id)
+        
+        # Get all cart items for the user
+        items = self.cart_repo.get_items_by_user_id(user_id)
+        
+        # Convert to schema
+        return self._items_to_cart_schema(user_id, items)
+    
+    def clear_product_from_cart(self, product_id: str, user_id: str) -> CartPublic:
+        """
+        Completely remove a product from cart regardless of quantity.
+        
+        Args:
+            product_id: Product ID to remove completely.
+            user_id: User ID (anonymous or registered).
+            
+        Returns:
+            CartPublic: Updated cart.
+            
+        Raises:
+            ValueError: If item not found or not in user's cart.
+        """
+        # Get the cart item first to verify it belongs to this user
+        cart_item = self.cart_repo.get_item_with_product(product_id=product_id, user_id=user_id)
+        if not cart_item or cart_item.user_id != user_id:
+            raise ValueError(f"Item {product_id} not found in your cart")
+        
+        # Completely remove the item from cart
+        self.cart_repo.clear_product_from_cart(cart_id=cart_item.id)
         
         # Get all cart items for the user
         items = self.cart_repo.get_items_by_user_id(user_id)
