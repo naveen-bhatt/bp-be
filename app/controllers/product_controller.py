@@ -1,13 +1,13 @@
 """Product controller - handles HTTP request/response logic."""
 
 from typing import Optional
-from fastapi import HTTPException, status, Query
+from fastapi import HTTPException, status, Depends
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import DatabaseSession, AdminUserId, Pagination
 from app.schemas.product import (
     ProductCreate, ProductUpdate, ProductPublic, ProductDetail,
-    ProductList, ProductSearch, StockUpdate
+    ProductList, ProductSearch, StockUpdate, ProductFilter
 )
 from app.schemas.common import PaginatedResponse, SuccessResponse
 from app.core.logging import get_logger
@@ -20,25 +20,25 @@ logger = get_logger(__name__)
 async def list_products(
     db: DatabaseSession,
     pagination: Pagination,
-    search: Optional[str] = Query(None, description="Search term")
+    filters: ProductFilter = Depends()
 ) -> PaginatedResponse:
     """
     List active products with pagination and search.
     
     Args:
-        pagination: Pagination parameters.
-        search: Optional search term.
         db: Database session.
+        pagination: Pagination parameters.
+        filters: Product filtering parameters.
         
     Returns:
         PaginatedResponse: Paginated list of products.
     """
-    logger.info(f"Listing products with search: '{search}', page: {pagination.page}")
+    logger.info(f"Listing products with filters: {filters}, page: {pagination.page}")
     
     try:
         from app.services.product_service import ProductService
         service = ProductService(db)
-        return await service.list_products(pagination=pagination, search=search)
+        return await service.list_products(pagination=pagination, search=filters.search)
     except Exception as e:
         logger.error(f"Error listing products: {e}")
         raise HTTPException(

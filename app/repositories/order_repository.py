@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import and_, desc
 
 from app.models.order import Order, OrderItem, OrderStatus
+from app.models.cart import Cart
 from app.core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -23,28 +24,36 @@ class OrderRepository:
         """
         self.db = db
     
-    def create_order(
+    def create(
         self,
         user_id: Optional[str],
+        address_id: Optional[str],
+        cart_id: Optional[str],
         total_amount: Decimal,
-        currency: str = "USD"
+        currency: str = "INR",
+        status: OrderStatus = OrderStatus.INITIATED
     ) -> Order:
         """
         Create a new order.
         
         Args:
             user_id: User ID (nullable for guest orders).
+            address_id: Address ID for shipping.
+            cart_id: Cart ID used for order creation.
             total_amount: Total order amount.
             currency: Currency code.
+            status: Initial order status.
             
         Returns:
             Order: Created order instance.
         """
         order = Order(
             user_id=user_id,
+            address_id=address_id,
+            cart_id=cart_id,
             total_amount=total_amount,
             currency=currency,
-            status=OrderStatus.CREATED.value
+            status=status.value
         )
         
         self.db.add(order)
@@ -54,12 +63,18 @@ class OrderRepository:
         logger.info(f"Created order: {order.id}, amount: {total_amount} {currency}")
         return order
     
-    def create_order_from_cart(self, cart: Cart, user_id: Optional[str] = None) -> Order:
+    def create_order_from_cart(
+        self,
+        cart: Cart,
+        address_id: str,
+        user_id: Optional[str] = None
+    ) -> Order:
         """
         Create order from cart items.
         
         Args:
             cart: Cart to create order from.
+            address_id: Address ID for shipping.
             user_id: User ID (overrides cart user_id if provided).
             
         Returns:
@@ -67,13 +82,16 @@ class OrderRepository:
         """
         # Calculate total
         total_amount = cart.calculate_total()
-        currency = cart.items[0].product.currency if cart.items else "USD"
+        currency = cart.items[0].product.currency if cart.items else "INR"
         
         # Create order
-        order = self.create_order(
+        order = self.create(
             user_id=user_id or cart.user_id,
+            address_id=address_id,
+            cart_id=cart.id,
             total_amount=total_amount,
-            currency=currency
+            currency=currency,
+            status=OrderStatus.INITIATED
         )
         
         # Create order items from cart items
@@ -107,7 +125,7 @@ class OrderRepository:
             selectinload(Order.payments)
         ).filter(Order.id == order_id).first()
     
-    def get_user_order(self, user_id: str, order_id: str) -> Optional[Order]:
+    def get_by_user_and_id(self, user_id: str, order_id: str) -> Optional[Order]:
         """
         Get order by ID for specific user.
         
@@ -125,31 +143,42 @@ class OrderRepository:
             and_(Order.id == order_id, Order.user_id == user_id)
         ).first()
     
-    def list_user_orders(
+    def list_by_user_id(
         self,
         user_id: str,
-        skip: int = 0,
-        limit: int = 100
-    ) -> Tuple[List[Order], int]:
+        limit: int = 50,
+        offset: int = 0
+    ) -> List[Order]:
         """
         List orders for a user with pagination.
         
         Args:
             user_id: User ID.
-            skip: Number of records to skip.
             limit: Maximum number of records to return.
+            offset: Number of records to skip.
             
         Returns:
-            Tuple[List[Order], int]: Tuple of (orders, total_count).
+            List[Order]: List of orders.
         """
         query = self.db.query(Order).filter(Order.user_id == user_id)
         
-        total_count = query.count()
         orders = query.options(
             selectinload(Order.items).selectinload(OrderItem.product)
-        ).order_by(desc(Order.created_at)).offset(skip).limit(limit).all()
+        ).order_by(desc(Order.created_at)).offset(offset).limit(limit).all()
         
-        return orders, total_count
+        return orders
+    
+    def count_by_user_id(self, user_id: str) -> int:
+        """
+        Count orders for a user.
+        
+        Args:
+            user_id: User ID.
+            
+        Returns:
+            int: Number of orders.
+        """
+        return self.db.query(Order).filter(Order.user_id == user_id).count()
     
     def list_orders_by_status(
         self,
@@ -217,6 +246,39 @@ class OrderRepository:
         logger.info(f"Updated order {order.id} total: {old_total} -> {new_total}")
         return order
     
+    def create_order_item(
+        self,
+        order_id: str,
+        product_id: str,
+        quantity: int,
+        unit_price: Decimal
+    ) -> OrderItem:
+        """
+        Create an order item.
+        
+        Args:
+            order_id: Order ID.
+            product_id: Product ID.
+            quantity: Quantity.
+            unit_price: Price per unit.
+            
+        Returns:
+            OrderItem: Created order item.
+        """
+        order_item = OrderItem(
+            order_id=order_id,
+            product_id=product_id,
+            quantity=quantity,
+            unit_price=unit_price
+        )
+        
+        self.db.add(order_item)
+        self.db.commit()
+        self.db.refresh(order_item)
+        
+        logger.info(f"Created order item for order {order_id}: product {product_id}, qty {quantity}")
+        return order_item
+        
     def add_order_item(
         self,
         order: Order,
@@ -309,7 +371,7 @@ class OrderRepository:
         
         return self.db.query(Order).filter(
             and_(
-                Order.status == OrderStatus.CREATED.value,
+                Order.status == OrderStatus.INITIATED.value,
                 Order.created_at < cutoff_time
             )
         ).all()

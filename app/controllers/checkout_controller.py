@@ -4,29 +4,26 @@ from fastapi import HTTPException, status, Request
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import DatabaseSession, OptionalUserId
-from app.schemas.order import OrderCreateRequest, OrderPublic, OrderSummary
+from app.schemas.order import OrderCreateRequest, OrderSummary
 from app.schemas.payment import (
     PaymentIntentRequest, PaymentIntentResponse, PaymentPublic,
     PaymentStatus, StripeWebhookRequest, RazorpayWebhookRequest
 )
 from app.schemas.common import SuccessResponse, PaginatedResponse
 
-# TODO: Import services when implemented
-# from app.services.checkout_service import CheckoutService
-# from app.services.payment_service import PaymentService
+from app.services.order_service import OrderService
 
 def create_order(
     request: OrderCreateRequest,
     user_id: OptionalUserId,
     db: DatabaseSession
-) -> OrderPublic:
+) -> OrderSummary:
     """
     Create order from current cart.
     
     Args:
         request: Order creation data.
-        user_id: Optional user ID from JWT.
-        cart_token: Optional cart token for guest carts.
+        user_id: User ID from JWT.
         db: Database session.
         
     Returns:
@@ -35,16 +32,35 @@ def create_order(
     Raises:
         HTTPException: If order creation fails.
     """
-    # TODO: Implement with CheckoutService
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Create order endpoint not yet implemented"
-    )
+    try:
+        if not user_id:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authentication required to create order"
+            )
+            
+        order_service = OrderService(db)
+        return order_service.create_order(
+            user_id=user_id,
+            order_data=request
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create order: {str(e)}"
+        )
 
 
 def list_orders(
     user_id: OptionalUserId,
-    db: DatabaseSession
+    db: DatabaseSession,
+    limit: int = 50,
+    offset: int = 0
 ) -> PaginatedResponse:
     """
     List user's orders.
@@ -52,6 +68,8 @@ def list_orders(
     Args:
         user_id: User ID from JWT.
         db: Database session.
+        limit: Maximum number of orders to return.
+        offset: Number of orders to skip.
         
     Returns:
         PaginatedResponse: Paginated list of orders.
@@ -59,43 +77,79 @@ def list_orders(
     Raises:
         HTTPException: If user not authenticated.
     """
-    if not user_id:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication required to view orders"
+    try:
+        if not user_id:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authentication required to view orders"
+            )
+            
+        order_service = OrderService(db)
+        order_response = order_service.list_orders(
+            user_id=user_id,
+            limit=limit,
+            offset=offset
         )
-    
-    # TODO: Implement with OrderRepository
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="List orders endpoint not yet implemented"
-    )
+        
+        return PaginatedResponse(
+            items=order_response.items,
+            total=order_response.count,
+            limit=limit,
+            offset=offset
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to list orders: {str(e)}"
+        )
 
 
 def get_order(
     order_id: str,
     user_id: OptionalUserId,
     db: DatabaseSession
-) -> OrderPublic:
+) -> OrderSummary:
     """
     Get order by ID.
     
     Args:
         order_id: Order ID.
-        user_id: Optional user ID from JWT.
+        user_id: User ID from JWT.
         db: Database session.
         
     Returns:
-        OrderPublic: Order details.
+        OrderSummary: Order details.
         
     Raises:
         HTTPException: If order not found or access denied.
     """
-    # TODO: Implement with OrderRepository
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Get order endpoint not yet implemented"
-    )
+    try:
+        if not user_id:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authentication required to access order"
+            )
+            
+        order_service = OrderService(db)
+        return order_service.get_order(
+            user_id=user_id,
+            order_id=order_id
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get order: {str(e)}"
+        )
 
 
 def create_payment_intent(

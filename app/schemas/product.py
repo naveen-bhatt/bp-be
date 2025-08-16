@@ -8,6 +8,19 @@ from pydantic import BaseModel, Field, field_validator
 from .common import BaseSchema, UUIDMixin, TimestampMixin
 
 
+class ProductFilter(BaseModel):
+    """Product filtering parameters."""
+    
+    search: Optional[str] = Field(None, description="Search term for product name/description")
+    brand: Optional[str] = Field(None, description="Filter by brand")
+    fragrance_family: Optional[str] = Field(None, description="Filter by fragrance family")
+    gender: Optional[str] = Field(None, description="Filter by target gender")
+    min_price: Optional[str] = Field(None, description="Minimum price filter")
+    max_price: Optional[str] = Field(None, description="Maximum price filter")
+    is_active: Optional[bool] = Field(None, description="Filter by active status")
+    concentration: Optional[str] = Field(None, description="Filter by concentration")
+
+
 class ProductBase(BaseModel):
     """Base product schema."""
     

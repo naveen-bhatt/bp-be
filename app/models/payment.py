@@ -50,7 +50,7 @@ class Payment(BaseModel):
     provider_payment_id = Column(String(255), nullable=True)  # Set when payment is created with provider
     status = Column(String(50), default=PaymentStatus.PENDING.value, nullable=False)
     amount = Column(DECIMAL(10, 2), nullable=False)
-    currency = Column(String(3), default="USD", nullable=False)
+    currency = Column(String(3), default="INR", nullable=False)
     raw_payload = Column(JSON, nullable=True)  # Store raw provider response
     
     # Relationships

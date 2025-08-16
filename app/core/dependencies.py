@@ -116,17 +116,17 @@ async def get_admin_user(
     db: Annotated[Session, Depends(get_db)]
 ) -> str:
     """
-    Ensure current user is an admin.
+    Ensure current user has admin or superadmin access.
     
     Args:
         current_user_id: Current user ID from token.
         db: Database session.
         
     Returns:
-        str: User ID if user is admin.
+        str: User ID if user has admin access.
         
     Raises:
-        HTTPException: If user is not admin.
+        HTTPException: If user doesn't have admin access.
     """
     # Import here to avoid circular imports
     from app.repositories.user_repository import UserRepository
@@ -134,7 +134,7 @@ async def get_admin_user(
     user_repo = UserRepository(db)
     user = user_repo.get_by_id(current_user_id)
     
-    if not user or not user.is_superuser:
+    if not user or not user.has_admin_access():
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required"

@@ -228,11 +228,42 @@ def get_current_user(
     Raises:
         HTTPException: If user not found.
     """
-    # TODO: Implement with UserRepository
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Get current user endpoint not yet implemented"
-    )
+    try:
+        from app.repositories.user_repository import UserRepository
+        
+        user_repo = UserRepository(db)
+        user = user_repo.get_by_id(current_user_id)
+        
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        
+        # Convert to UserPublic schema
+        return UserPublic(
+            id=str(user.id),
+            email=user.email,
+            first_name=user.first_name,
+            last_name=user.last_name,
+            display_picture=user.display_picture,
+            phone=user.phone,
+            user_type=user.user_type.value,
+            is_active=user.is_active,
+            is_superuser=user.is_superadmin(),
+            last_login=None,  # Will be implemented when last_login column is added
+            created_at=user.created_at,
+            updated_at=user.updated_at
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get current user: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve user information"
+        )
 
 
 def logout(

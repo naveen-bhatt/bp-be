@@ -4,7 +4,7 @@ from typing import Optional, List
 from sqlalchemy.orm import Session
 from sqlalchemy import and_
 
-from app.models.user import User, UserType
+from app.models.user import User, UserRole, UserType
 from app.core.security import hash_password
 from app.core.logging import get_logger
 
@@ -23,24 +23,33 @@ class UserRepository:
         """
         self.db = db
     
-    def create(self, email: str, password: Optional[str] = None, **kwargs) -> User:
+    def create(self, email: str, password_hash: str, **kwargs) -> User:
         """
         Create a new user.
         
         Args:
             email: User's email address.
-            password: Plain text password (will be hashed).
+            password_hash: Hashed password.
             **kwargs: Additional user attributes.
             
         Returns:
             User: Created user instance.
             
-        Example:
-            ```python
-            user = user_repo.create("user@example.com", "password123")
-            ```
+        Raises:
+            ValueError: If email already exists.
         """
-        password_hash = hash_password(password) if password else hash_password("temp_password")
+        # Check if email already exists
+        if self.get_by_email(email):
+            logger.warning(f"Email already exists: {email}")
+            raise ValueError("Email already registered")
+        
+        # Set role based on is_admin flag for backward compatibility
+        role = kwargs.get('role', UserRole.USER.value)
+        if kwargs.get('is_admin', False):
+            role = UserRole.ADMIN.value
+        
+        # Set user type
+        user_type = kwargs.get('user_type', UserType.EMAIL.value)
         
         user = User(
             email=email,
@@ -49,7 +58,11 @@ class UserRepository:
             last_name=kwargs.get('last_name'),
             is_active=kwargs.get('is_active', True),
             is_admin=kwargs.get('is_admin', False),
-            email_verified=kwargs.get('email_verified', False)
+            email_verified=kwargs.get('email_verified', False),
+            display_picture=kwargs.get('display_picture'),
+            phone=kwargs.get('phone'),
+            user_type=user_type,
+            role=role
         )
         
         self.db.add(user)
@@ -82,7 +95,9 @@ class UserRepository:
             last_name=None,
             is_active=True,
             is_admin=False,
-            email_verified=False
+            email_verified=False,
+            user_type=UserType.ANONYMOUS,
+            role=UserRole.USER.value
         )
         
         self.db.add(user)
@@ -128,7 +143,7 @@ class UserRepository:
         user.email = email
         user.password_hash = hash_password(password)
         user.email_verified = False  # Will be verified later via email
-        # user.user_type = UserType.REGISTERED  # Will be added after migration
+        user.user_type = UserType.EMAIL  # Set user type to EMAIL
         
         self.db.commit()
         self.db.refresh(user)
@@ -166,7 +181,7 @@ class UserRepository:
         user.email = email
         user.password_hash = hash_password("social_temp_password")  # Temporary password for social users
         user.email_verified = True  # Social providers verify emails
-        # user.user_type = UserType.SOCIAL  # Will be added after migration
+        user.user_type = UserType.SOCIAL  # Set user type to SOCIAL
         
         self.db.commit()
         self.db.refresh(user)

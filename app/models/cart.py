@@ -1,12 +1,19 @@
 """Cart model."""
 
+import enum
 from decimal import Decimal
 from typing import Optional, List
-from sqlalchemy import Column, String, Integer, ForeignKey, Index
+from sqlalchemy import Column, String, Integer, ForeignKey, Index, Enum
 from sqlalchemy.dialects.mysql import CHAR
 from sqlalchemy.orm import relationship
 
 from .base import BaseModel
+
+
+class CartState(enum.Enum):
+    """Cart state enumeration."""
+    ACTIVE = "ACTIVE"
+    EXPIRED = "EXPIRED"
 
 
 class Cart(BaseModel):
@@ -18,6 +25,7 @@ class Cart(BaseModel):
         user_id: Foreign key to User model.
         product_id: Foreign key to Product model.
         quantity: Quantity of the product.
+        cart_state: State of the cart item (ACTIVE, EXPIRED).
         created_at: Item creation timestamp.
         updated_at: Last modification timestamp.
     """
@@ -27,6 +35,7 @@ class Cart(BaseModel):
     user_id = Column(CHAR(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     product_id = Column(CHAR(36), ForeignKey("products.id", ondelete="CASCADE"), nullable=False)
     quantity = Column(Integer, nullable=False)
+    cart_state = Column(Enum(CartState), nullable=False, default=CartState.ACTIVE)
     
     # Relationships
     user = relationship("User", back_populates="carts")
@@ -37,11 +46,12 @@ class Cart(BaseModel):
         Index("idx_cart_user_product", user_id, product_id, unique=True),
         Index("idx_cart_user", user_id),
         Index("idx_cart_product", product_id),
+        Index("idx_cart_state", cart_state),
     )
     
     def __repr__(self) -> str:
         """String representation of the cart."""
-        return f"<Cart(id={self.id}, user_id={self.user_id}, product_id={self.product_id}, qty={self.quantity})>"
+        return f"<Cart(id={self.id}, user_id={self.user_id}, product_id={self.product_id}, qty={self.quantity}, state={self.cart_state})>"
     
     @property
     def subtotal(self) -> Decimal:
@@ -61,3 +71,9 @@ class Cart(BaseModel):
             new_quantity: New quantity value.
         """
         self.quantity = new_quantity
+    
+    def expire_cart(self) -> None:
+        """
+        Mark cart item as expired (after successful order).
+        """
+        self.cart_state = CartState.EXPIRED

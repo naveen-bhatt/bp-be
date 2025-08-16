@@ -3,7 +3,7 @@
 from decimal import Decimal
 from enum import Enum
 from typing import List
-from sqlalchemy import Column, String, Integer, ForeignKey, Index
+from sqlalchemy import Column, String, Integer, ForeignKey, Index, Boolean
 from sqlalchemy.dialects.mysql import DECIMAL, CHAR
 from sqlalchemy.orm import relationship
 
@@ -13,10 +13,10 @@ from .base import BaseModel
 class OrderStatus(str, Enum):
     """Order status enumeration."""
     
-    CREATED = "created"
-    PAID = "paid"
-    FAILED = "failed"
-    CANCELLED = "cancelled"
+    INITIATED = "initiated"
+    PENDING = "pending"
+    SUCCESSFUL = "successful"
+    FAILURE = "failure"
 
 
 class Order(BaseModel):
@@ -26,6 +26,8 @@ class Order(BaseModel):
     Attributes:
         id: Unique identifier (UUID).
         user_id: Foreign key to User model (nullable for guest orders).
+        address_id: Foreign key to Address model for shipping.
+        cart_id: ID of the cart used to create this order.
         total_amount: Total order amount.
         currency: Currency code.
         status: Order status.
@@ -38,12 +40,18 @@ class Order(BaseModel):
     __tablename__ = "orders"
     
     user_id = Column(CHAR(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    address_id = Column(CHAR(36), ForeignKey("addresses.id", ondelete="SET NULL"), nullable=True)
+    cart_id = Column(CHAR(36), nullable=True)
+    shipping_id = Column(String(255), nullable=True)
+    admin_notes = Column(String(1000), nullable=True)
+    spam_order = Column(Boolean, default=False, nullable=False)
     total_amount = Column(DECIMAL(10, 2), nullable=False)
-    currency = Column(String(3), default="USD", nullable=False)
-    status = Column(String(50), default=OrderStatus.CREATED.value, nullable=False)
+    currency = Column(String(3), default="INR", nullable=False)
+    status = Column(String(50), default=OrderStatus.INITIATED.value, nullable=False)
     
     # Relationships
     user = relationship("User", back_populates="orders")
+    address = relationship("Address", foreign_keys=[address_id])
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
     payments = relationship("Payment", back_populates="order", cascade="all, delete-orphan")
     
@@ -51,11 +59,15 @@ class Order(BaseModel):
     __table_args__ = (
         Index("idx_order_user_status", user_id, status),
         Index("idx_order_status_created", status, "created_at"),
+        Index("idx_order_address", address_id),
+        Index("idx_order_cart", cart_id),
+        Index("idx_order_shipping_id", shipping_id),
+        Index("idx_order_spam_order", spam_order),
     )
     
     def __repr__(self) -> str:
         """String representation of the order."""
-        return f"<Order(id={self.id}, user_id={self.user_id}, total={self.total_amount}, status={self.status})>"
+        return f"<Order(id={self.id}, user_id={self.user_id}, address_id={self.address_id}, cart_id={self.cart_id}, shipping_id={self.shipping_id}, total={self.total_amount}, status={self.status}, spam_order={self.spam_order})>"
     
     def update_status(self, new_status: OrderStatus) -> None:
         """
@@ -66,21 +78,21 @@ class Order(BaseModel):
         """
         self.status = new_status.value
     
-    def is_paid(self) -> bool:
-        """Check if order is paid."""
-        return self.status == OrderStatus.PAID.value
+    def is_successful(self) -> bool:
+        """Check if order is successful."""
+        return self.status == OrderStatus.SUCCESSFUL.value
     
-    def is_failed(self) -> bool:
+    def is_pending(self) -> bool:
+        """Check if order is pending."""
+        return self.status == OrderStatus.PENDING.value
+    
+    def is_failure(self) -> bool:
         """Check if order failed."""
-        return self.status == OrderStatus.FAILED.value
-    
-    def is_cancelled(self) -> bool:
-        """Check if order is cancelled."""
-        return self.status == OrderStatus.CANCELLED.value
+        return self.status == OrderStatus.FAILURE.value
     
     def can_be_paid(self) -> bool:
         """Check if order can be paid."""
-        return self.status == OrderStatus.CREATED.value
+        return self.status in [OrderStatus.INITIATED.value, OrderStatus.PENDING.value]
     
     def calculate_total(self) -> Decimal:
         """

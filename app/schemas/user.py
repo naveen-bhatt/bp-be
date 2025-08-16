@@ -31,6 +31,11 @@ class UserPublic(BaseSchema, UUIDMixin, TimestampMixin):
     """Public user schema (safe for API responses)."""
     
     email: str = Field(..., description="User email address")
+    first_name: Optional[str] = Field(None, description="User's first name")
+    last_name: Optional[str] = Field(None, description="User's last name")
+    display_picture: Optional[str] = Field(None, description="User's profile picture URL")
+    phone: Optional[str] = Field(None, description="User's phone number")
+    user_type: str = Field(..., description="User type (ANONYMOUS, SOCIAL, EMAIL, PHONE)")
     is_active: bool = Field(..., description="Whether user is active")
     is_superuser: bool = Field(..., description="Whether user has admin privileges")
     last_login: Optional[datetime] = Field(None, description="Last login timestamp")

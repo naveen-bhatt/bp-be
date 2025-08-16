@@ -1,16 +1,22 @@
 """Central router with all endpoints organized by section."""
 
 from email.headerregistry import Address
+from typing import List
 from fastapi import FastAPI, APIRouter
 from fastapi.responses import RedirectResponse
 
-from . import auth_controller, product_controller, cart_controller, checkout_controller, oauth_controller, wishlist_controller, address_controller
+from . import auth_controller, product_controller, cart_controller, checkout_controller, oauth_controller, wishlist_controller, address_controller, admin_controller
 from app.schemas.common import PaginatedResponse, SuccessResponse
 from app.schemas.product import ProductDetail
 from app.schemas.auth import AnonymousTokenResponse
 from app.schemas.cart import CartPublic, CartSummary
 from app.schemas.wishlist import WishlistResponse
 from app.schemas.address import AddressListResponse, Address
+from app.schemas.order import OrderSummary, OrderListResponse
+from app.schemas.admin import (
+    AdminOrderListResponse, BulkShipResponse, OrderCancelResponse, 
+    ShippedOrdersAddressList, AdminStats
+)
 
 # Create main API router
 api_router = APIRouter(prefix="/api/v1")
@@ -67,17 +73,29 @@ api_router.add_api_route('/addresses/{address_id}', address_controller.get_addre
 api_router.add_api_route('/addresses/{address_id}', address_controller.update_address, methods=["PUT"], tags=["Address"], response_model=Address)
 api_router.add_api_route('/addresses/{address_id}', address_controller.delete_address, methods=["DELETE"], tags=["Address"], response_model=SuccessResponse)
 
+
 # =============================================================================
 # PAYMENT ENDPOINTS
 # =============================================================================
-api_router.add_api_route('/checkout/orders', checkout_controller.create_order, methods=["POST"], tags=["Payment"])
-api_router.add_api_route('/checkout/orders', checkout_controller.list_orders, methods=["GET"], tags=["Payment"])
-api_router.add_api_route('/checkout/orders/{order_id}', checkout_controller.get_order, methods=["GET"], tags=["Payment"])
+api_router.add_api_route('/checkout/orders', checkout_controller.create_order, methods=["POST"], tags=["Payment"], response_model=OrderSummary)
+api_router.add_api_route('/checkout/orders', checkout_controller.list_orders, methods=["GET"], tags=["Payment"], response_model=OrderListResponse)
+api_router.add_api_route('/checkout/orders/{order_id}', checkout_controller.get_order, methods=["GET"], tags=["Payment"], response_model=OrderSummary)
 api_router.add_api_route('/checkout/payment-intent', checkout_controller.create_payment_intent, methods=["POST"], tags=["Payment"])
 api_router.add_api_route('/checkout/payments/{payment_id}', checkout_controller.get_payment, methods=["GET"], tags=["Payment"])
 api_router.add_api_route('/checkout/payments/{payment_id}/status', checkout_controller.get_payment_status, methods=["GET"], tags=["Payment"])
 api_router.add_api_route('/checkout/webhook/stripe', checkout_controller.stripe_webhook, methods=["POST"], tags=["Payment"])
 api_router.add_api_route('/checkout/webhook/razorpay', checkout_controller.razorpay_webhook, methods=["POST"], tags=["Payment"])
+
+
+# =============================================================================
+# ADMIN ENDPOINTS (Admin/Superadmin only)
+# =============================================================================
+api_router.add_api_route('/admin/orders', admin_controller.get_recent_orders, methods=["GET"], tags=["Admin"], response_model=AdminOrderListResponse)
+api_router.add_api_route('/admin/orders/bulk-ship', admin_controller.bulk_ship_orders, methods=["POST"], tags=["Admin"], response_model=BulkShipResponse)
+api_router.add_api_route('/admin/orders/{order_id}/cancel', admin_controller.cancel_order, methods=["POST"], tags=["Admin"], response_model=OrderCancelResponse)
+api_router.add_api_route('/admin/orders/shipped', admin_controller.get_shipped_orders, methods=["GET"], tags=["Admin"], response_model=List[OrderSummary])
+api_router.add_api_route('/admin/orders/shipped/addresses', admin_controller.generate_shipped_orders_address_pdf, methods=["GET"], tags=["Admin"], response_model=ShippedOrdersAddressList)
+api_router.add_api_route('/admin/stats', admin_controller.get_admin_stats, methods=["GET"], tags=["Admin"], response_model=AdminStats)
 
 
 def include_routes(app: FastAPI) -> None:

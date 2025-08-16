@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.repositories.user_repository import UserRepository
 from app.models.user import User
-from app.core.security import create_anonymous_token, verify_password, hash_password, create_token_pair, verify_token
+from app.core.security import create_anonymous_token, verify_password, hash_password, create_token_pair, create_enhanced_token_pair, verify_token
 from app.core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -88,13 +88,7 @@ class AuthService:
                 # Continue without updating last login
             
             # Create tokens
-            user_data = {
-                "sub": str(user.id),
-                "email": user.email,
-                "user_type": getattr(user, 'user_type', 'registered').value if hasattr(user, 'user_type') and user.user_type else 'registered'
-            }
-            
-            tokens = create_token_pair(user_data)
+            tokens = create_enhanced_token_pair(user)
             logger.info(f"Successful login for user: {email}")
             return tokens
             
@@ -130,12 +124,7 @@ class AuthService:
                 if user.email == email:
                     logger.info(f"User {user_id} already registered with email: {email}")
                     # User already registered with this email, just return tokens
-                    user_data = {
-                        "sub": str(user.id),
-                        "email": user.email,
-                        "user_type": getattr(user, 'user_type', 'registered').value if hasattr(user, 'user_type') and user.user_type else 'registered'
-                    }
-                    tokens = create_token_pair(user_data)
+                    tokens = create_enhanced_token_pair(user)
                     return tokens
                 else:
                     raise ValueError(f"User already registered with different email: {user.email}")
@@ -146,13 +135,7 @@ class AuthService:
                 raise ValueError("User not found or conversion failed")
             
             # Create tokens
-            user_data = {
-                "sub": str(user.id),
-                "email": user.email,
-                "user_type": getattr(user, 'user_type', 'registered').value if hasattr(user, 'user_type') and user.user_type else 'registered'
-            }
-            
-            tokens = create_token_pair(user_data)
+            tokens = create_enhanced_token_pair(user)
             logger.info(f"Successful registration conversion for user: {email}")
             return tokens
             
@@ -160,7 +143,7 @@ class AuthService:
             logger.error(f"Registration error for user {user_id} with email {email}: {str(e)}")
             raise
     
-    def social_register(self, user_id: str, email: str, provider: str, provider_account_id: str = None) -> Dict[str, str]:
+    def social_register(self, user_id: str, email: str, provider: str, provider_account_id: str = None, user_info: Any = None) -> Dict[str, str]:
         """
         Register a user via social login by converting an anonymous user.
         
@@ -169,6 +152,7 @@ class AuthService:
             email: User's email address from social provider.
             provider: Social provider name.
             provider_account_id: Account ID from the provider (optional).
+            user_info: OAuth user info containing profile data (optional).
             
         Returns:
             Dict[str, str]: Token pair for the registered user.
@@ -184,6 +168,10 @@ class AuthService:
             if not user:
                 raise ValueError("User not found or conversion failed")
             
+            # Update user profile with OAuth info if provided
+            if user_info:
+                self.update_user_profile_from_oauth(str(user.id), user_info)
+            
             # Create social account if provider_account_id is provided
             if provider_account_id:
                 from app.repositories.social_repository import SocialRepository
@@ -198,18 +186,59 @@ class AuthService:
                 logger.info(f"Created social account for user {user.id} with provider {provider}")
             
             # Create tokens
-            user_data = {
-                "sub": str(user.id),
-                "email": user.email,
-                "user_type": getattr(user, 'user_type', 'social').value if hasattr(user, 'user_type') and user.user_type else 'social'
-            }
-            
-            tokens = create_token_pair(user_data)
+            tokens = create_enhanced_token_pair(user)
             logger.info(f"Successful social registration conversion for user: {email}")
             return tokens
             
         except Exception as e:
             logger.error(f"Social registration error for user {user_id} with email {email}: {str(e)}")
+            raise
+    
+    def update_user_profile_from_oauth(self, user_id: str, user_info: Any) -> None:
+        """
+        Update user profile information from OAuth provider.
+        
+        Args:
+            user_id: User ID to update.
+            user_info: OAuth user info containing profile data.
+            
+        Raises:
+            ValueError: If user not found.
+        """
+        try:
+            logger.info(f"Updating user profile from OAuth for user {user_id}")
+            
+            # Get user
+            user = self.user_repo.get_by_id(user_id)
+            if not user:
+                raise ValueError(f"User not found: {user_id}")
+            
+            # Update profile fields if available
+            updated = False
+            
+            if user_info.name and (not user.first_name or not user.last_name):
+                # Parse name into first and last name
+                name_parts = user_info.name.strip().split(' ', 1)
+                if len(name_parts) >= 2:
+                    user.first_name = name_parts[0]
+                    user.last_name = name_parts[1]
+                else:
+                    user.first_name = name_parts[0]
+                updated = True
+            
+            if user_info.avatar_url and user_info.avatar_url != user.display_picture:
+                user.display_picture = user_info.avatar_url
+                updated = True
+            
+            # Commit changes if any updates were made
+            if updated:
+                self.db.commit()
+                logger.info(f"Updated user profile for user {user_id}")
+            else:
+                logger.info(f"No profile updates needed for user {user_id}")
+                
+        except Exception as e:
+            logger.error(f"Failed to update user profile from OAuth for user {user_id}: {str(e)}")
             raise
     
     def social_login(self, email: str, provider: str, provider_account_id: str) -> Dict[str, str]:
@@ -257,13 +286,7 @@ class AuthService:
                 # Continue without updating last login
             
             # Create tokens
-            user_data = {
-                "sub": str(user.id),
-                "email": user.email,
-                "user_type": getattr(user, 'user_type', 'social').value if hasattr(user, 'user_type') and user.user_type else 'social'
-            }
-            
-            tokens = create_token_pair(user_data)
+            tokens = create_enhanced_token_pair(user)
             logger.info(f"Successful social login for user: {email}")
             return tokens
             
@@ -303,13 +326,7 @@ class AuthService:
                 raise ValueError("User account is not active")
             
             # Create new token pair
-            user_data = {
-                "sub": str(user.id),
-                "email": user.email,
-                "user_type": getattr(user, 'user_type', 'registered').value if hasattr(user, 'user_type') and user.user_type else 'registered'
-            }
-            
-            tokens = create_token_pair(user_data)
+            tokens = create_enhanced_token_pair(user)
             logger.info(f"Successfully refreshed tokens for user: {user.email}")
             return tokens
             

@@ -189,6 +189,12 @@ async def google_callback(
         if existing_user:
             logger.info(f"User exists with email: {user_info.email}")
             
+            # Update user profile with latest info from Google
+            auth_service.update_user_profile_from_oauth(
+                user_id=str(existing_user.id),
+                user_info=user_info
+            )
+            
             # Check if user has a social account for Google
             from app.repositories.social_repository import SocialRepository
             from app.models.social_account import SocialProvider
@@ -236,7 +242,8 @@ async def google_callback(
                     user_id=oauth_state.anonymous_user_id,
                     email=user_info.email,
                     provider="google",
-                    provider_account_id=user_info.provider_account_id
+                    provider_account_id=user_info.provider_account_id,
+                    user_info=user_info
                 )
                 logger.info(f"Converted anonymous user to social user: {user_info.email}")
             else:
@@ -246,7 +253,8 @@ async def google_callback(
                     user_id=anonymous_user_data["user_id"],
                     email=user_info.email,
                     provider="google",
-                    provider_account_id=user_info.provider_account_id
+                    provider_account_id=user_info.provider_account_id,
+                    user_info=user_info
                 )
                 logger.info(f"Created new social user: {user_info.email}")
         

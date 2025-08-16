@@ -180,6 +180,76 @@ def create_token_pair(user_data: Dict[str, Any]) -> Dict[str, str]:
     }
 
 
+def create_enhanced_token_pair(user: Any) -> Dict[str, str]:
+    """
+    Create enhanced access and refresh tokens with user profile information.
+    
+    Args:
+        user: User model instance with profile information.
+        
+    Returns:
+        Dict[str, str]: Dictionary containing access_token and refresh_token.
+        
+    Example:
+        ```python
+        tokens = create_enhanced_token_pair(user)
+        access_token = tokens["access_token"]
+        refresh_token = tokens["refresh_token"]
+        ```
+    """
+    # Create enhanced user data for access token
+    user_data = {
+        "sub": str(user.id),
+        "email": user.email,
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "display_picture": user.display_picture,
+        "phone": getattr(user, 'phone', None),  # Will be added in future migration
+        "is_email_verified": user.email_verified,
+        "user_type": _determine_user_type(user),
+        "provider": _determine_provider(user)
+    }
+    
+    access_token = create_access_token(user_data)
+    refresh_token = create_refresh_token({"sub": user_data["sub"]})
+    
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer"
+    }
+
+
+def _determine_user_type(user: Any) -> str:
+    """
+    Get the user type from the database field.
+    
+    Args:
+        user: User model instance.
+        
+    Returns:
+        str: User type (ANONYMOUS, SOCIAL, EMAIL, PHONE).
+    """
+    return user.user_type.value if hasattr(user, 'user_type') and user.user_type else "ANONYMOUS"
+
+
+def _determine_provider(user: Any) -> Optional[str]:
+    """
+    Get the OAuth provider from social accounts table.
+    
+    Args:
+        user: User model instance.
+        
+    Returns:
+        Optional[str]: Provider name or None if not social.
+    """
+    if _determine_user_type(user) == "SOCIAL":
+        # Check social accounts to determine provider
+        if hasattr(user, 'social_accounts') and user.social_accounts:
+            return user.social_accounts[0].provider.value
+    return None
+
+
 def create_anonymous_token(user_id: str) -> Dict[str, Any]:
     """
     Create an access token for an anonymous user without expiration.

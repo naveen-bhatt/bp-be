@@ -2,18 +2,27 @@
 
 from datetime import datetime
 from typing import Optional, List
-from sqlalchemy import Column, String, Boolean, DateTime, Index, Enum
+from sqlalchemy import Column, String, Boolean, DateTime, Index, Enum as SQLAlchemyEnum
+from sqlalchemy.dialects.mysql import CHAR
 from sqlalchemy.orm import relationship
 import enum
 
 from .base import BaseModel
 
 
+class UserRole(enum.Enum):
+    """User role enumeration."""
+    USER = "USER"
+    ADMIN = "ADMIN"
+    SUPERADMIN = "SUPERADMIN"
+
+
 class UserType(enum.Enum):
     """User type enumeration."""
-    ANONYMOUS = "anonymous"
-    REGISTERED = "registered"
-    SOCIAL = "social"
+    ANONYMOUS = "ANONYMOUS"
+    SOCIAL = "SOCIAL"
+    EMAIL = "EMAIL"
+    PHONE = "PHONE"
 
 
 class User(BaseModel):
@@ -41,6 +50,10 @@ class User(BaseModel):
     is_active = Column(Boolean, default=True, nullable=False)
     is_admin = Column(Boolean, default=False, nullable=False)  # Current column name in DB
     email_verified = Column(Boolean, default=False, nullable=False)
+    display_picture = Column(String(500), nullable=True)
+    phone = Column(String(20), nullable=True)
+    user_type = Column(SQLAlchemyEnum(UserType), default=UserType.ANONYMOUS, nullable=False)
+    role = Column(SQLAlchemyEnum(UserRole), default=UserRole.USER, nullable=False)
     
     # Future columns (will be added via migration)
     # user_type = Column(Enum(UserType), default=UserType.REGISTERED, nullable=False)
@@ -57,9 +70,12 @@ class User(BaseModel):
     # Indexes
     __table_args__ = (
         Index("idx_user_email_active", email, is_active),
+        Index("idx_user_role", role),
+        Index("idx_user_display_picture", display_picture),
+        Index("idx_user_phone", phone),
+        Index("idx_user_type", user_type),
         # Future indexes (will be added via migration)
         # Index("idx_user_last_login", last_login),
-        # Index("idx_user_type", user_type),
         # Index("idx_user_type_active", user_type, is_active),
     )
     
@@ -82,8 +98,7 @@ class User(BaseModel):
     
     def is_anonymous(self) -> bool:
         """Check if user is anonymous."""
-        # For now, check if email contains 'anonymous' until user_type column is added
-        return self.email and "anonymous_" in self.email and "@temp.local" in self.email
+        return self.user_type == UserType.ANONYMOUS
     
     def is_registered(self) -> bool:
         """Check if user is registered."""
@@ -91,8 +106,31 @@ class User(BaseModel):
     
     def is_social(self) -> bool:
         """Check if user is social."""
-        # Will be implemented when user_type column is added
-        return False
+        return self.user_type == UserType.SOCIAL
+    
+    def is_email(self) -> bool:
+        """Check if user is email type."""
+        return self.user_type == UserType.EMAIL
+    
+    def is_phone(self) -> bool:
+        """Check if user is phone type."""
+        return self.user_type == UserType.PHONE
+    
+    def has_admin_access(self) -> bool:
+        """Check if user has admin or superadmin access."""
+        return self.role in [UserRole.ADMIN, UserRole.SUPERADMIN]
+    
+    def is_admin_user(self) -> bool:
+        """Check if user is admin (but not superadmin)."""
+        return self.role == UserRole.ADMIN
+    
+    def is_superadmin(self) -> bool:
+        """Check if user is superadmin."""
+        return self.role == UserRole.SUPERADMIN
+    
+    def is_superuser(self) -> bool:
+        """Check if user is superadmin (alias for is_superadmin for compatibility)."""
+        return self.role == UserRole.SUPERADMIN
     
     def convert_to_registered(self, email: str, hashed_password: str) -> None:
         """Convert anonymous user to registered user."""

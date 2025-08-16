@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.repositories.cart_repository import CartRepository
 from app.repositories.product_repository import ProductRepository
 from app.schemas.cart import CartPublic, CartItemPublic, CartSummary
-from app.models.cart import Cart
+from app.models.cart import Cart, CartState
 
 
 class CartService:
@@ -26,19 +26,22 @@ class CartService:
     
     def get_cart(self, user_id: str) -> CartPublic:
         """
-        Get current cart for user.
+        Get user's active cart.
         
         Args:
             user_id: User ID (anonymous or registered).
             
         Returns:
-            CartPublic: Cart with items.
+            CartPublic: Cart with active items only.
         """
         # Get all cart items for the user
         items = self.cart_repo.get_items_by_user_id(user_id)
         
+        # Only return active cart items
+        active_items = [item for item in items if item.cart_state == CartState.ACTIVE]
+        
         # Convert to schema
-        return self._items_to_cart_schema(user_id, items)
+        return self._items_to_cart_schema(user_id, active_items)
     
     def get_cart_summary(self, user_id: str) -> CartSummary:
         """
@@ -56,7 +59,7 @@ class CartService:
         return CartSummary(
             total_items=total_items,
             total_amount=str(total_amount),
-            currency="USD"  # TODO: Make currency configurable
+            currency="INR"  # TODO: Make currency configurable
         )
     
     def add_to_cart(self, product_id: str, quantity: int, user_id: str) -> CartPublic:

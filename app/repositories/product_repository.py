@@ -29,7 +29,7 @@ class ProductRepository:
         name: str,
         slug: str,
         price: Decimal,
-        currency: str = "USD",
+        currency: str = "INR",
         description: Optional[str] = None,
         quantity: int = 0,
         is_active: bool = True

@@ -215,7 +215,7 @@ class PaymentProvider(ABC):
             list[str]: List of supported currency codes.
         """
         # Default to common currencies
-        return ["USD", "EUR", "GBP", "JPY", "AUD", "CAD"]
+        return ["INR", "USD", "EUR", "GBP", "AUD", "CAD"]
     
     def is_currency_supported(self, currency: str) -> bool:
         """

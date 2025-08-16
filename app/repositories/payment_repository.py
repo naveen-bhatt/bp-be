@@ -28,7 +28,7 @@ class PaymentRepository:
         order_id: str,
         provider: PaymentProvider,
         amount: Decimal,
-        currency: str = "USD",
+        currency: str = "INR",
         provider_payment_id: Optional[str] = None
     ) -> Payment:
         """
