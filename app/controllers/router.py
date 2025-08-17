@@ -21,6 +21,12 @@ from app.schemas.admin import (
 # Create main API router
 api_router = APIRouter(prefix="/api/v1")
 
+# Add OPTIONS handler for CORS preflight requests
+@api_router.options("/{path:path}")
+async def options_handler():
+    """Handle OPTIONS requests for CORS preflight."""
+    return {"message": "OK"}
+
 # =============================================================================
 # AUTH ENDPOINTS
 # =============================================================================

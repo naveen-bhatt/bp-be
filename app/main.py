@@ -51,9 +51,10 @@ app = FastAPI(
 )
 
 # Add middleware (order matters!)
+# CORS middleware must be added FIRST to handle OPTIONS preflight requests
+add_cors_middleware(app)
 app.add_middleware(RequestIdMiddleware)
 app.add_middleware(AuthContextMiddleware)
-add_cors_middleware(app)
 
 # Register exception handlers
 register_exception_handlers(app)
@@ -102,7 +103,7 @@ if __name__ == "__main__":
     uvicorn.run(
         "app.main:app",
         host="0.0.0.0",
-        port=8100,
+        port=8000,
         reload=settings.is_development,
         log_level="info"
     )

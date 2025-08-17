@@ -30,6 +30,7 @@ def add_cors_middleware(app: FastAPI) -> None:
         logger.warning(f"No CORS origins configured, using fallback: {cors_origins}")
     
     logger.info(f"Configuring CORS with origins: {cors_origins}")
+    logger.info("CORS middleware will handle OPTIONS preflight requests automatically")
     
     app.add_middleware(
         CORSMiddleware,
