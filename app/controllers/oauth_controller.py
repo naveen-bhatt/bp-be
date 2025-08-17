@@ -2,7 +2,7 @@
 
 from typing import Optional
 from fastapi import HTTPException, status, Request, Response
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, JSONResponse
 from urllib.parse import urlencode, quote
 
 from app.core.dependencies import DatabaseSession, AnonymousUserId
@@ -12,6 +12,7 @@ from app.core.logging import get_logger
 from app.providers.oauth.base import OAuthState
 from app.providers.oauth.google import GoogleOAuthProvider
 from app.services.auth_service import AuthService
+from app.schemas.auth import TokenResponse, GoogleOneTapRequest, GoogleOneTapResponse
 
 logger = get_logger(__name__)
 
@@ -285,4 +286,160 @@ async def google_callback(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"OAuth callback failed: {str(e)}"
+        )
+
+
+async def google_one_tap(
+    request: GoogleOneTapRequest,
+    db: DatabaseSession,
+    anonymous_user_id: Optional[AnonymousUserId] = None
+) -> GoogleOneTapResponse:
+    """
+    Handle Google One Tap sign-in using ID token.
+    
+    This endpoint is designed for Google One Tap sign-in where the frontend
+    receives an ID token directly from Google and sends it to this endpoint.
+    
+    Args:
+        request: Google One Tap request containing ID token.
+        anonymous_user_id: Optional anonymous user ID from token.
+        db: Database session.
+        
+    Returns:
+        GoogleOneTapResponse: Token response with access and refresh tokens.
+        
+    Raises:
+        HTTPException: If One Tap sign-in fails.
+    """
+    try:
+        logger.info("Starting Google One Tap sign-in")
+        
+        # Check if Google OAuth is configured
+        if not settings.google_client_id or not settings.google_client_secret:
+            raise HTTPException(
+                status_code=status.HTTP_501_NOT_IMPLEMENTED,
+                detail="Google OAuth is not configured. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET."
+            )
+        
+        # Create Google provider
+        google_provider = GoogleOAuthProvider(
+            client_id=settings.google_client_id,
+            client_secret=settings.google_client_secret
+        )
+        
+        # Verify the ID token
+        try:
+            user_info = await google_provider.verify_id_token(
+                id_token=request.id_token,
+                access_token=None,  # Not needed for ID token verification
+                nonce=None  # Not needed for One Tap
+            )
+            logger.info(f"Google One Tap ID token verified for user: {user_info.email}")
+        except Exception as e:
+            logger.error(f"Google One Tap ID token verification failed: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid ID token: {str(e)}"
+            )
+        
+        # Create auth service and handle user registration/login
+        auth_service = AuthService(db)
+        
+        # Check if user exists by email
+        existing_user = auth_service.user_repo.get_by_email(user_info.email)
+        
+        if existing_user:
+            logger.info(f"User exists with email: {user_info.email}")
+            
+            # Update user profile with latest info from Google
+            auth_service.update_user_profile_from_oauth(
+                user_id=str(existing_user.id),
+                user_info=user_info
+            )
+            
+            # Check if user has a social account for Google
+            from app.repositories.social_repository import SocialRepository
+            from app.models.social_account import SocialProvider
+            
+            social_repo = SocialRepository(db)
+            social_account = social_repo.get_by_user_and_provider(
+                user_id=str(existing_user.id),
+                provider=SocialProvider.GOOGLE
+            )
+            
+            if social_account:
+                # User exists and has Google social account - LOGIN
+                logger.info(f"User has Google social account, logging in: {user_info.email}")
+                tokens = auth_service.social_login(
+                    email=user_info.email,
+                    provider="google",
+                    provider_account_id=user_info.provider_account_id
+                )
+                logger.info(f"One Tap login successful for existing user: {user_info.email}")
+            else:
+                # User exists but no Google social account - ADD SOCIAL ACCOUNT
+                logger.info(f"User exists but no Google social account, adding it: {user_info.email}")
+                
+                # Create social account for existing user
+                social_repo.create(
+                    user_id=str(existing_user.id),
+                    provider=SocialProvider.GOOGLE,
+                    provider_account_id=user_info.provider_account_id
+                )
+                
+                # Login the user
+                tokens = auth_service.social_login(
+                    email=user_info.email,
+                    provider="google",
+                    provider_account_id=user_info.provider_account_id
+                )
+                logger.info(f"Added Google social account and logged in via One Tap: {user_info.email}")
+        else:
+            # User doesn't exist - REGISTRATION
+            logger.info(f"User not found, attempting registration via One Tap: {user_info.email}")
+            
+            # Use anonymous_user_id from request if provided, otherwise from token
+            user_id_to_convert = request.anonymous_user_id or anonymous_user_id
+            
+            if user_id_to_convert:
+                # Convert anonymous user to social user
+                tokens = auth_service.social_register(
+                    user_id=user_id_to_convert,
+                    email=user_info.email,
+                    provider="google",
+                    provider_account_id=user_info.provider_account_id,
+                    user_info=user_info
+                )
+                logger.info(f"Converted anonymous user to social user via One Tap: {user_info.email}")
+            else:
+                # Create a new anonymous user and convert it
+                anonymous_user_data = auth_service.create_anonymous_user()
+                tokens = auth_service.social_register(
+                    user_id=anonymous_user_data["user_id"],
+                    email=user_info.email,
+                    provider="google",
+                    provider_account_id=user_info.provider_account_id,
+                    user_info=user_info
+                )
+                logger.info(f"Created new social user via One Tap: {user_info.email}")
+        
+        # Return tokens using the proper response model
+        logger.info(f"Google One Tap successful for user: {user_info.email}")
+        return GoogleOneTapResponse(
+            success=True,
+            access_token=tokens["access_token"],
+            refresh_token=tokens["refresh_token"],
+            token_type=tokens["token_type"],
+            expires_in=tokens.get("expires_in", 1800),
+            user_email=user_info.email
+        )
+        
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
+    except Exception as e:
+        logger.error(f"Google One Tap sign-in failed: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to process Google One Tap sign-in: {str(e)}"
         )

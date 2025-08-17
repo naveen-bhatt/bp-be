@@ -75,6 +75,24 @@ class SocialLoginRequest(BaseModel):
         return v
 
 
+class GoogleOneTapRequest(BaseModel):
+    """Google One Tap sign-in request."""
+    
+    id_token: str = Field(..., description="Google ID token from One Tap")
+    anonymous_user_id: Optional[str] = Field(None, description="Optional anonymous user ID to convert")
+
+
+class GoogleOneTapResponse(BaseModel):
+    """Google One Tap sign-in response."""
+    
+    success: bool = Field(..., description="Whether the sign-in was successful")
+    access_token: str = Field(..., description="JWT access token")
+    refresh_token: str = Field(..., description="JWT refresh token")
+    token_type: str = Field(..., description="Token type")
+    expires_in: int = Field(..., description="Access token expiration in seconds")
+    user_email: str = Field(..., description="User's email address")
+
+
 class PasswordChangeRequest(BaseModel):
     """Password change request."""
     

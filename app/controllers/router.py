@@ -8,7 +8,7 @@ from fastapi.responses import RedirectResponse
 from . import auth_controller, product_controller, cart_controller, checkout_controller, oauth_controller, wishlist_controller, address_controller, admin_controller
 from app.schemas.common import PaginatedResponse, SuccessResponse
 from app.schemas.product import ProductDetail
-from app.schemas.auth import AnonymousTokenResponse
+from app.schemas.auth import AnonymousTokenResponse, GoogleOneTapResponse
 from app.schemas.cart import CartPublic, CartSummary
 from app.schemas.wishlist import WishlistResponse
 from app.schemas.address import AddressListResponse, Address
@@ -35,6 +35,7 @@ api_router.add_api_route('/auth/logout', auth_controller.logout, methods=["POST"
 # Google OAuth endpoints
 api_router.add_api_route('/auth/google/start', oauth_controller.google_start, methods=["GET"], tags=["Auth", "OAuth"])
 api_router.add_api_route('/auth/google/callback', oauth_controller.google_callback, methods=["GET"], tags=["Auth", "OAuth"], response_class=RedirectResponse)
+api_router.add_api_route('/auth/google/one-tap', oauth_controller.google_one_tap, methods=["POST"], tags=["Auth", "OAuth"], response_model=GoogleOneTapResponse)
 
 # =============================================================================
 # PRODUCT ENDPOINTS
