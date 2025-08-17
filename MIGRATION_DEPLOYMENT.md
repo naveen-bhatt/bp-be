@@ -17,6 +17,7 @@ Migrations are automatically executed after successful deployment:
 ### 2. GitHub Actions Integration
 
 - **Post-Health Check**: Migrations run after application is confirmed healthy
+- **Docker Container Execution**: Uses the deployed container with all dependencies
 - **Automatic Execution**: No manual intervention required
 - **Failure Handling**: If migrations fail, deployment workflow shows error
 
