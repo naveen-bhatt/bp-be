@@ -1,0 +1,1168 @@
+{
+ "Description": "VPC and networking infrastructure for dev environment",
+ "Resources": {
+  "devvpc91497180": {
+   "Type": "AWS::EC2::VPC",
+   "Properties": {
+    "CidrBlock": "10.0.0.0/16",
+    "EnableDnsHostnames": true,
+    "EnableDnsSupport": true,
+    "InstanceTenancy": "default",
+    "Tags": [
+     {
+      "Key": "CostCenter",
+      "Value": "development"
+     },
+     {
+      "Key": "Environment",
+      "Value": "dev"
+     },
+     {
+      "Key": "ManagedBy",
+      "Value": "cdk"
+     },
+     {
+      "Key": "Name",
+      "Value": "dev-vpc-stack/dev-vpc"
+     },
+     {
+      "Key": "Project",
+      "Value": "bluepansy"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "dev-vpc-stack/dev-vpc/Resource"
+   }
+  },
+  "devvpcpublicSubnet1Subnet7C94356B": {
+   "Type": "AWS::EC2::Subnet",
+   "Properties": {
+    "AvailabilityZone": "ap-south-1a",
+    "CidrBlock": "10.0.0.0/24",
+    "MapPublicIpOnLaunch": true,
+    "Tags": [
+     {
+      "Key": "aws-cdk:subnet-name",
+      "Value": "public"
+     },
+     {
+      "Key": "aws-cdk:subnet-type",
+      "Value": "Public"
+     },
+     {
+      "Key": "CostCenter",
+      "Value": "development"
+     },
+     {
+      "Key": "Environment",
+      "Value": "dev"
+     },
+     {
+      "Key": "ManagedBy",
+      "Value": "cdk"
+     },
+     {
+      "Key": "Name",
+      "Value": "dev-vpc-stack/dev-vpc/publicSubnet1"
+     },
+     {
+      "Key": "Project",
+      "Value": "bluepansy"
+     }
+    ],
+    "VpcId": {
+     "Ref": "devvpc91497180"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "dev-vpc-stack/dev-vpc/publicSubnet1/Subnet"
+   }
+  },
+  "devvpcpublicSubnet1RouteTable304F936F": {
+   "Type": "AWS::EC2::RouteTable",
+   "Properties": {
+    "Tags": [
+     {
+      "Key": "CostCenter",
+      "Value": "development"
+     },
+     {
+      "Key": "Environment",
+      "Value": "dev"
+     },
+     {
+      "Key": "ManagedBy",
+      "Value": "cdk"
+     },
+     {
+      "Key": "Name",
+      "Value": "dev-vpc-stack/dev-vpc/publicSubnet1"
+     },
+     {
+      "Key": "Project",
+      "Value": "bluepansy"
+     }
+    ],
+    "VpcId": {
+     "Ref": "devvpc91497180"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "dev-vpc-stack/dev-vpc/publicSubnet1/RouteTable"
+   }
+  },
+  "devvpcpublicSubnet1RouteTableAssociation8C92EB8D": {
+   "Type": "AWS::EC2::SubnetRouteTableAssociation",
+   "Properties": {
+    "RouteTableId": {
+     "Ref": "devvpcpublicSubnet1RouteTable304F936F"
+    },
+    "SubnetId": {
+     "Ref": "devvpcpublicSubnet1Subnet7C94356B"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "dev-vpc-stack/dev-vpc/publicSubnet1/RouteTableAssociation"
+   }
+  },
+  "devvpcpublicSubnet1DefaultRoute05B3B9A7": {
+   "Type": "AWS::EC2::Route",
+   "Properties": {
+    "DestinationCidrBlock": "0.0.0.0/0",
+    "GatewayId": {
+     "Ref": "devvpcIGW7D664B58"
+    },
+    "RouteTableId": {
+     "Ref": "devvpcpublicSubnet1RouteTable304F936F"
+    }
+   },
+   "DependsOn": [
+    "devvpcVPCGW7C912A36"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "dev-vpc-stack/dev-vpc/publicSubnet1/DefaultRoute"
+   }
+  },
+  "devvpcpublicSubnet1EIP19E59F11": {
+   "Type": "AWS::EC2::EIP",
+   "Properties": {
+    "Domain": "vpc",
+    "Tags": [
+     {
+      "Key": "CostCenter",
+      "Value": "development"
+     },
+     {
+      "Key": "Environment",
+      "Value": "dev"
+     },
+     {
+      "Key": "ManagedBy",
+      "Value": "cdk"
+     },
+     {
+      "Key": "Name",
+      "Value": "dev-vpc-stack/dev-vpc/publicSubnet1"
+     },
+     {
+      "Key": "Project",
+      "Value": "bluepansy"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "dev-vpc-stack/dev-vpc/publicSubnet1/EIP"
+   }
+  },
+  "devvpcpublicSubnet1NATGatewayCEC19A0B": {
+   "Type": "AWS::EC2::NatGateway",
+   "Properties": {
+    "AllocationId": {
+     "Fn::GetAtt": [
+      "devvpcpublicSubnet1EIP19E59F11",
+      "AllocationId"
+     ]
+    },
+    "SubnetId": {
+     "Ref": "devvpcpublicSubnet1Subnet7C94356B"
+    },
+    "Tags": [
+     {
+      "Key": "CostCenter",
+      "Value": "development"
+     },
+     {
+      "Key": "Environment",
+      "Value": "dev"
+     },
+     {
+      "Key": "ManagedBy",
+      "Value": "cdk"
+     },
+     {
+      "Key": "Name",
+      "Value": "dev-vpc-stack/dev-vpc/publicSubnet1"
+     },
+     {
+      "Key": "Project",
+      "Value": "bluepansy"
+     }
+    ]
+   },
+   "DependsOn": [
+    "devvpcpublicSubnet1DefaultRoute05B3B9A7",
+    "devvpcpublicSubnet1RouteTableAssociation8C92EB8D"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "dev-vpc-stack/dev-vpc/publicSubnet1/NATGateway"
+   }
+  },
+  "devvpcpublicSubnet2SubnetF1219D44": {
+   "Type": "AWS::EC2::Subnet",
+   "Properties": {
+    "AvailabilityZone": "ap-south-1b",
+    "CidrBlock": "10.0.1.0/24",
+    "MapPublicIpOnLaunch": true,
+    "Tags": [
+     {
+      "Key": "aws-cdk:subnet-name",
+      "Value": "public"
+     },
+     {
+      "Key": "aws-cdk:subnet-type",
+      "Value": "Public"
+     },
+     {
+      "Key": "CostCenter",
+      "Value": "development"
+     },
+     {
+      "Key": "Environment",
+      "Value": "dev"
+     },
+     {
+      "Key": "ManagedBy",
+      "Value": "cdk"
+     },
+     {
+      "Key": "Name",
+      "Value": "dev-vpc-stack/dev-vpc/publicSubnet2"
+     },
+     {
+      "Key": "Project",
+      "Value": "bluepansy"
+     }
+    ],
+    "VpcId": {
+     "Ref": "devvpc91497180"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "dev-vpc-stack/dev-vpc/publicSubnet2/Subnet"
+   }
+  },
+  "devvpcpublicSubnet2RouteTableE45223FF": {
+   "Type": "AWS::EC2::RouteTable",
+   "Properties": {
+    "Tags": [
+     {
+      "Key": "CostCenter",
+      "Value": "development"
+     },
+     {
+      "Key": "Environment",
+      "Value": "dev"
+     },
+     {
+      "Key": "ManagedBy",
+      "Value": "cdk"
+     },
+     {
+      "Key": "Name",
+      "Value": "dev-vpc-stack/dev-vpc/publicSubnet2"
+     },
+     {
+      "Key": "Project",
+      "Value": "bluepansy"
+     }
+    ],
+    "VpcId": {
+     "Ref": "devvpc91497180"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "dev-vpc-stack/dev-vpc/publicSubnet2/RouteTable"
+   }
+  },
+  "devvpcpublicSubnet2RouteTableAssociationB200A7DE": {
+   "Type": "AWS::EC2::SubnetRouteTableAssociation",
+   "Properties": {
+    "RouteTableId": {
+     "Ref": "devvpcpublicSubnet2RouteTableE45223FF"
+    },
+    "SubnetId": {
+     "Ref": "devvpcpublicSubnet2SubnetF1219D44"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "dev-vpc-stack/dev-vpc/publicSubnet2/RouteTableAssociation"
+   }
+  },
+  "devvpcpublicSubnet2DefaultRouteCD54DC7C": {
+   "Type": "AWS::EC2::Route",
+   "Properties": {
+    "DestinationCidrBlock": "0.0.0.0/0",
+    "GatewayId": {
+     "Ref": "devvpcIGW7D664B58"
+    },
+    "RouteTableId": {
+     "Ref": "devvpcpublicSubnet2RouteTableE45223FF"
+    }
+   },
+   "DependsOn": [
+    "devvpcVPCGW7C912A36"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "dev-vpc-stack/dev-vpc/publicSubnet2/DefaultRoute"
+   }
+  },
+  "devvpcprivateSubnet1Subnet3F15C46D": {
+   "Type": "AWS::EC2::Subnet",
+   "Properties": {
+    "AvailabilityZone": "ap-south-1a",
+    "CidrBlock": "10.0.2.0/24",
+    "MapPublicIpOnLaunch": false,
+    "Tags": [
+     {
+      "Key": "aws-cdk:subnet-name",
+      "Value": "private"
+     },
+     {
+      "Key": "aws-cdk:subnet-type",
+      "Value": "Private"
+     },
+     {
+      "Key": "CostCenter",
+      "Value": "development"
+     },
+     {
+      "Key": "Environment",
+      "Value": "dev"
+     },
+     {
+      "Key": "ManagedBy",
+      "Value": "cdk"
+     },
+     {
+      "Key": "Name",
+      "Value": "dev-vpc-stack/dev-vpc/privateSubnet1"
+     },
+     {
+      "Key": "Project",
+      "Value": "bluepansy"
+     }
+    ],
+    "VpcId": {
+     "Ref": "devvpc91497180"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "dev-vpc-stack/dev-vpc/privateSubnet1/Subnet"
+   }
+  },
+  "devvpcprivateSubnet1RouteTable5946D7AE": {
+   "Type": "AWS::EC2::RouteTable",
+   "Properties": {
+    "Tags": [
+     {
+      "Key": "CostCenter",
+      "Value": "development"
+     },
+     {
+      "Key": "Environment",
+      "Value": "dev"
+     },
+     {
+      "Key": "ManagedBy",
+      "Value": "cdk"
+     },
+     {
+      "Key": "Name",
+      "Value": "dev-vpc-stack/dev-vpc/privateSubnet1"
+     },
+     {
+      "Key": "Project",
+      "Value": "bluepansy"
+     }
+    ],
+    "VpcId": {
+     "Ref": "devvpc91497180"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "dev-vpc-stack/dev-vpc/privateSubnet1/RouteTable"
+   }
+  },
+  "devvpcprivateSubnet1RouteTableAssociation6578FE59": {
+   "Type": "AWS::EC2::SubnetRouteTableAssociation",
+   "Properties": {
+    "RouteTableId": {
+     "Ref": "devvpcprivateSubnet1RouteTable5946D7AE"
+    },
+    "SubnetId": {
+     "Ref": "devvpcprivateSubnet1Subnet3F15C46D"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "dev-vpc-stack/dev-vpc/privateSubnet1/RouteTableAssociation"
+   }
+  },
+  "devvpcprivateSubnet1DefaultRouteB40FD005": {
+   "Type": "AWS::EC2::Route",
+   "Properties": {
+    "DestinationCidrBlock": "0.0.0.0/0",
+    "NatGatewayId": {
+     "Ref": "devvpcpublicSubnet1NATGatewayCEC19A0B"
+    },
+    "RouteTableId": {
+     "Ref": "devvpcprivateSubnet1RouteTable5946D7AE"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "dev-vpc-stack/dev-vpc/privateSubnet1/DefaultRoute"
+   }
+  },
+  "devvpcprivateSubnet2SubnetB94607F3": {
+   "Type": "AWS::EC2::Subnet",
+   "Properties": {
+    "AvailabilityZone": "ap-south-1b",
+    "CidrBlock": "10.0.3.0/24",
+    "MapPublicIpOnLaunch": false,
+    "Tags": [
+     {
+      "Key": "aws-cdk:subnet-name",
+      "Value": "private"
+     },
+     {
+      "Key": "aws-cdk:subnet-type",
+      "Value": "Private"
+     },
+     {
+      "Key": "CostCenter",
+      "Value": "development"
+     },
+     {
+      "Key": "Environment",
+      "Value": "dev"
+     },
+     {
+      "Key": "ManagedBy",
+      "Value": "cdk"
+     },
+     {
+      "Key": "Name",
+      "Value": "dev-vpc-stack/dev-vpc/privateSubnet2"
+     },
+     {
+      "Key": "Project",
+      "Value": "bluepansy"
+     }
+    ],
+    "VpcId": {
+     "Ref": "devvpc91497180"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "dev-vpc-stack/dev-vpc/privateSubnet2/Subnet"
+   }
+  },
+  "devvpcprivateSubnet2RouteTable48BB609C": {
+   "Type": "AWS::EC2::RouteTable",
+   "Properties": {
+    "Tags": [
+     {
+      "Key": "CostCenter",
+      "Value": "development"
+     },
+     {
+      "Key": "Environment",
+      "Value": "dev"
+     },
+     {
+      "Key": "ManagedBy",
+      "Value": "cdk"
+     },
+     {
+      "Key": "Name",
+      "Value": "dev-vpc-stack/dev-vpc/privateSubnet2"
+     },
+     {
+      "Key": "Project",
+      "Value": "bluepansy"
+     }
+    ],
+    "VpcId": {
+     "Ref": "devvpc91497180"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "dev-vpc-stack/dev-vpc/privateSubnet2/RouteTable"
+   }
+  },
+  "devvpcprivateSubnet2RouteTableAssociationB9109482": {
+   "Type": "AWS::EC2::SubnetRouteTableAssociation",
+   "Properties": {
+    "RouteTableId": {
+     "Ref": "devvpcprivateSubnet2RouteTable48BB609C"
+    },
+    "SubnetId": {
+     "Ref": "devvpcprivateSubnet2SubnetB94607F3"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "dev-vpc-stack/dev-vpc/privateSubnet2/RouteTableAssociation"
+   }
+  },
+  "devvpcprivateSubnet2DefaultRouteDC17BA5D": {
+   "Type": "AWS::EC2::Route",
+   "Properties": {
+    "DestinationCidrBlock": "0.0.0.0/0",
+    "NatGatewayId": {
+     "Ref": "devvpcpublicSubnet1NATGatewayCEC19A0B"
+    },
+    "RouteTableId": {
+     "Ref": "devvpcprivateSubnet2RouteTable48BB609C"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "dev-vpc-stack/dev-vpc/privateSubnet2/DefaultRoute"
+   }
+  },
+  "devvpcisolatedSubnet1SubnetF4527CD2": {
+   "Type": "AWS::EC2::Subnet",
+   "Properties": {
+    "AvailabilityZone": "ap-south-1a",
+    "CidrBlock": "10.0.4.0/24",
+    "MapPublicIpOnLaunch": false,
+    "Tags": [
+     {
+      "Key": "aws-cdk:subnet-name",
+      "Value": "isolated"
+     },
+     {
+      "Key": "aws-cdk:subnet-type",
+      "Value": "Isolated"
+     },
+     {
+      "Key": "CostCenter",
+      "Value": "development"
+     },
+     {
+      "Key": "Environment",
+      "Value": "dev"
+     },
+     {
+      "Key": "ManagedBy",
+      "Value": "cdk"
+     },
+     {
+      "Key": "Name",
+      "Value": "dev-vpc-stack/dev-vpc/isolatedSubnet1"
+     },
+     {
+      "Key": "Project",
+      "Value": "bluepansy"
+     }
+    ],
+    "VpcId": {
+     "Ref": "devvpc91497180"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "dev-vpc-stack/dev-vpc/isolatedSubnet1/Subnet"
+   }
+  },
+  "devvpcisolatedSubnet1RouteTableA71E9744": {
+   "Type": "AWS::EC2::RouteTable",
+   "Properties": {
+    "Tags": [
+     {
+      "Key": "CostCenter",
+      "Value": "development"
+     },
+     {
+      "Key": "Environment",
+      "Value": "dev"
+     },
+     {
+      "Key": "ManagedBy",
+      "Value": "cdk"
+     },
+     {
+      "Key": "Name",
+      "Value": "dev-vpc-stack/dev-vpc/isolatedSubnet1"
+     },
+     {
+      "Key": "Project",
+      "Value": "bluepansy"
+     }
+    ],
+    "VpcId": {
+     "Ref": "devvpc91497180"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "dev-vpc-stack/dev-vpc/isolatedSubnet1/RouteTable"
+   }
+  },
+  "devvpcisolatedSubnet1RouteTableAssociation9E5BF766": {
+   "Type": "AWS::EC2::SubnetRouteTableAssociation",
+   "Properties": {
+    "RouteTableId": {
+     "Ref": "devvpcisolatedSubnet1RouteTableA71E9744"
+    },
+    "SubnetId": {
+     "Ref": "devvpcisolatedSubnet1SubnetF4527CD2"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "dev-vpc-stack/dev-vpc/isolatedSubnet1/RouteTableAssociation"
+   }
+  },
+  "devvpcisolatedSubnet2Subnet395BFEA0": {
+   "Type": "AWS::EC2::Subnet",
+   "Properties": {
+    "AvailabilityZone": "ap-south-1b",
+    "CidrBlock": "10.0.5.0/24",
+    "MapPublicIpOnLaunch": false,
+    "Tags": [
+     {
+      "Key": "aws-cdk:subnet-name",
+      "Value": "isolated"
+     },
+     {
+      "Key": "aws-cdk:subnet-type",
+      "Value": "Isolated"
+     },
+     {
+      "Key": "CostCenter",
+      "Value": "development"
+     },
+     {
+      "Key": "Environment",
+      "Value": "dev"
+     },
+     {
+      "Key": "ManagedBy",
+      "Value": "cdk"
+     },
+     {
+      "Key": "Name",
+      "Value": "dev-vpc-stack/dev-vpc/isolatedSubnet2"
+     },
+     {
+      "Key": "Project",
+      "Value": "bluepansy"
+     }
+    ],
+    "VpcId": {
+     "Ref": "devvpc91497180"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "dev-vpc-stack/dev-vpc/isolatedSubnet2/Subnet"
+   }
+  },
+  "devvpcisolatedSubnet2RouteTable9853A56E": {
+   "Type": "AWS::EC2::RouteTable",
+   "Properties": {
+    "Tags": [
+     {
+      "Key": "CostCenter",
+      "Value": "development"
+     },
+     {
+      "Key": "Environment",
+      "Value": "dev"
+     },
+     {
+      "Key": "ManagedBy",
+      "Value": "cdk"
+     },
+     {
+      "Key": "Name",
+      "Value": "dev-vpc-stack/dev-vpc/isolatedSubnet2"
+     },
+     {
+      "Key": "Project",
+      "Value": "bluepansy"
+     }
+    ],
+    "VpcId": {
+     "Ref": "devvpc91497180"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "dev-vpc-stack/dev-vpc/isolatedSubnet2/RouteTable"
+   }
+  },
+  "devvpcisolatedSubnet2RouteTableAssociation5613220C": {
+   "Type": "AWS::EC2::SubnetRouteTableAssociation",
+   "Properties": {
+    "RouteTableId": {
+     "Ref": "devvpcisolatedSubnet2RouteTable9853A56E"
+    },
+    "SubnetId": {
+     "Ref": "devvpcisolatedSubnet2Subnet395BFEA0"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "dev-vpc-stack/dev-vpc/isolatedSubnet2/RouteTableAssociation"
+   }
+  },
+  "devvpcIGW7D664B58": {
+   "Type": "AWS::EC2::InternetGateway",
+   "Properties": {
+    "Tags": [
+     {
+      "Key": "CostCenter",
+      "Value": "development"
+     },
+     {
+      "Key": "Environment",
+      "Value": "dev"
+     },
+     {
+      "Key": "ManagedBy",
+      "Value": "cdk"
+     },
+     {
+      "Key": "Name",
+      "Value": "dev-vpc-stack/dev-vpc"
+     },
+     {
+      "Key": "Project",
+      "Value": "bluepansy"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "dev-vpc-stack/dev-vpc/IGW"
+   }
+  },
+  "devvpcVPCGW7C912A36": {
+   "Type": "AWS::EC2::VPCGatewayAttachment",
+   "Properties": {
+    "InternetGatewayId": {
+     "Ref": "devvpcIGW7D664B58"
+    },
+    "VpcId": {
+     "Ref": "devvpc91497180"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "dev-vpc-stack/dev-vpc/VPCGW"
+   }
+  },
+  "devecssg4E8E432A": {
+   "Type": "AWS::EC2::SecurityGroup",
+   "Properties": {
+    "GroupDescription": "Security group for dev ECS tasks",
+    "SecurityGroupEgress": [
+     {
+      "CidrIp": "0.0.0.0/0",
+      "Description": "Allow all outbound traffic by default",
+      "IpProtocol": "-1"
+     }
+    ],
+    "Tags": [
+     {
+      "Key": "CostCenter",
+      "Value": "development"
+     },
+     {
+      "Key": "Environment",
+      "Value": "dev"
+     },
+     {
+      "Key": "ManagedBy",
+      "Value": "cdk"
+     },
+     {
+      "Key": "Project",
+      "Value": "bluepansy"
+     }
+    ],
+    "VpcId": {
+     "Ref": "devvpc91497180"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "dev-vpc-stack/dev-ecs-sg/Resource"
+   }
+  },
+  "devecssgfromdevvpcstackdevalbsg2AB7BDFD8000C51F0C6C": {
+   "Type": "AWS::EC2::SecurityGroupIngress",
+   "Properties": {
+    "Description": "Allow traffic from ALB",
+    "FromPort": 8000,
+    "GroupId": {
+     "Fn::GetAtt": [
+      "devecssg4E8E432A",
+      "GroupId"
+     ]
+    },
+    "IpProtocol": "tcp",
+    "SourceSecurityGroupId": {
+     "Fn::GetAtt": [
+      "devalbsg7E4D78DE",
+      "GroupId"
+     ]
+    },
+    "ToPort": 8000
+   },
+   "Metadata": {
+    "aws:cdk:path": "dev-vpc-stack/dev-ecs-sg/from devvpcstackdevalbsg2AB7BDFD:8000"
+   }
+  },
+  "devrdssg7692B32F": {
+   "Type": "AWS::EC2::SecurityGroup",
+   "Properties": {
+    "GroupDescription": "Security group for dev RDS instance",
+    "SecurityGroupEgress": [
+     {
+      "CidrIp": "255.255.255.255/32",
+      "Description": "Disallow all traffic",
+      "FromPort": 252,
+      "IpProtocol": "icmp",
+      "ToPort": 86
+     }
+    ],
+    "Tags": [
+     {
+      "Key": "CostCenter",
+      "Value": "development"
+     },
+     {
+      "Key": "Environment",
+      "Value": "dev"
+     },
+     {
+      "Key": "ManagedBy",
+      "Value": "cdk"
+     },
+     {
+      "Key": "Project",
+      "Value": "bluepansy"
+     }
+    ],
+    "VpcId": {
+     "Ref": "devvpc91497180"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "dev-vpc-stack/dev-rds-sg/Resource"
+   }
+  },
+  "devrdssgfromdevvpcstackdevecssg0DFA54CD3306D1538923": {
+   "Type": "AWS::EC2::SecurityGroupIngress",
+   "Properties": {
+    "Description": "Allow MySQL access from ECS",
+    "FromPort": 3306,
+    "GroupId": {
+     "Fn::GetAtt": [
+      "devrdssg7692B32F",
+      "GroupId"
+     ]
+    },
+    "IpProtocol": "tcp",
+    "SourceSecurityGroupId": {
+     "Fn::GetAtt": [
+      "devecssg4E8E432A",
+      "GroupId"
+     ]
+    },
+    "ToPort": 3306
+   },
+   "Metadata": {
+    "aws:cdk:path": "dev-vpc-stack/dev-rds-sg/from devvpcstackdevecssg0DFA54CD:3306"
+   }
+  },
+  "devlambdasgC7C79100": {
+   "Type": "AWS::EC2::SecurityGroup",
+   "Properties": {
+    "GroupDescription": "Security group for dev Lambda functions",
+    "SecurityGroupEgress": [
+     {
+      "CidrIp": "0.0.0.0/0",
+      "Description": "Allow all outbound traffic by default",
+      "IpProtocol": "-1"
+     }
+    ],
+    "Tags": [
+     {
+      "Key": "CostCenter",
+      "Value": "development"
+     },
+     {
+      "Key": "Environment",
+      "Value": "dev"
+     },
+     {
+      "Key": "ManagedBy",
+      "Value": "cdk"
+     },
+     {
+      "Key": "Project",
+      "Value": "bluepansy"
+     }
+    ],
+    "VpcId": {
+     "Ref": "devvpc91497180"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "dev-vpc-stack/dev-lambda-sg/Resource"
+   }
+  },
+  "devlambdasgfromdevvpcstackdevecssg0DFA54CD80004AFEE765": {
+   "Type": "AWS::EC2::SecurityGroupIngress",
+   "Properties": {
+    "Description": "Allow Lambda to access ECS",
+    "FromPort": 8000,
+    "GroupId": {
+     "Fn::GetAtt": [
+      "devlambdasgC7C79100",
+      "GroupId"
+     ]
+    },
+    "IpProtocol": "tcp",
+    "SourceSecurityGroupId": {
+     "Fn::GetAtt": [
+      "devecssg4E8E432A",
+      "GroupId"
+     ]
+    },
+    "ToPort": 8000
+   },
+   "Metadata": {
+    "aws:cdk:path": "dev-vpc-stack/dev-lambda-sg/from devvpcstackdevecssg0DFA54CD:8000"
+   }
+  },
+  "devalbsg7E4D78DE": {
+   "Type": "AWS::EC2::SecurityGroup",
+   "Properties": {
+    "GroupDescription": "Security group for dev Application Load Balancer",
+    "SecurityGroupEgress": [
+     {
+      "CidrIp": "0.0.0.0/0",
+      "Description": "Allow all outbound traffic by default",
+      "IpProtocol": "-1"
+     }
+    ],
+    "SecurityGroupIngress": [
+     {
+      "CidrIp": "0.0.0.0/0",
+      "Description": "Allow HTTP from internet",
+      "FromPort": 80,
+      "IpProtocol": "tcp",
+      "ToPort": 80
+     },
+     {
+      "CidrIp": "0.0.0.0/0",
+      "Description": "Allow HTTPS from internet",
+      "FromPort": 443,
+      "IpProtocol": "tcp",
+      "ToPort": 443
+     },
+     {
+      "CidrIp": "0.0.0.0/0",
+      "Description": "Allow from anyone on port 8080",
+      "FromPort": 8080,
+      "IpProtocol": "tcp",
+      "ToPort": 8080
+     }
+    ],
+    "Tags": [
+     {
+      "Key": "CostCenter",
+      "Value": "development"
+     },
+     {
+      "Key": "Environment",
+      "Value": "dev"
+     },
+     {
+      "Key": "ManagedBy",
+      "Value": "cdk"
+     },
+     {
+      "Key": "Project",
+      "Value": "bluepansy"
+     }
+    ],
+    "VpcId": {
+     "Ref": "devvpc91497180"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "dev-vpc-stack/dev-alb-sg/Resource"
+   }
+  },
+  "CDKMetadata": {
+   "Type": "AWS::CDK::Metadata",
+   "Properties": {
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/32OywrCMBBFv8V9Gm38AhGRbjS04lbSOOrYmpRkRiniv9v66s7VvXO4DEdJlaZyMjK3mNh9ldRYyntBxlaiQzuwSt63jRXzg9vqudBc1mgLLh1Qz4aWeybYmLKGgQ9sFqO3aAi9+437ssh0HytDS0NwM63QAa9dHR5njiB0/Tt4m3yuGXWqpws4EgVYDkjtMnhuXg5/QeaOAWJ8iByi52BfOmumhukhdEsn78ZTmSqpRueImAR2hBeQ+TufrERfLTgBAAA="
+   },
+   "Metadata": {
+    "aws:cdk:path": "dev-vpc-stack/CDKMetadata/Default"
+   }
+  }
+ },
+ "Outputs": {
+  "devvpcid": {
+   "Description": "VPC ID for dev environment",
+   "Value": {
+    "Ref": "devvpc91497180"
+   },
+   "Export": {
+    "Name": "dev-vpc-id"
+   }
+  },
+  "ExportsOutputRefdevvpcisolatedSubnet1SubnetF4527CD21CF005E7": {
+   "Value": {
+    "Ref": "devvpcisolatedSubnet1SubnetF4527CD2"
+   },
+   "Export": {
+    "Name": "dev-vpc-stack:ExportsOutputRefdevvpcisolatedSubnet1SubnetF4527CD21CF005E7"
+   }
+  },
+  "ExportsOutputRefdevvpcisolatedSubnet2Subnet395BFEA06F74CDE9": {
+   "Value": {
+    "Ref": "devvpcisolatedSubnet2Subnet395BFEA0"
+   },
+   "Export": {
+    "Name": "dev-vpc-stack:ExportsOutputRefdevvpcisolatedSubnet2Subnet395BFEA06F74CDE9"
+   }
+  },
+  "ExportsOutputFnGetAttdevrdssg7692B32FGroupId95E62AAF": {
+   "Value": {
+    "Fn::GetAtt": [
+     "devrdssg7692B32F",
+     "GroupId"
+    ]
+   },
+   "Export": {
+    "Name": "dev-vpc-stack:ExportsOutputFnGetAttdevrdssg7692B32FGroupId95E62AAF"
+   }
+  },
+  "ExportsOutputFnGetAttdevalbsg7E4D78DEGroupId731E6BBA": {
+   "Value": {
+    "Fn::GetAtt": [
+     "devalbsg7E4D78DE",
+     "GroupId"
+    ]
+   },
+   "Export": {
+    "Name": "dev-vpc-stack:ExportsOutputFnGetAttdevalbsg7E4D78DEGroupId731E6BBA"
+   }
+  },
+  "ExportsOutputRefdevvpcpublicSubnet1Subnet7C94356B10F6FEEA": {
+   "Value": {
+    "Ref": "devvpcpublicSubnet1Subnet7C94356B"
+   },
+   "Export": {
+    "Name": "dev-vpc-stack:ExportsOutputRefdevvpcpublicSubnet1Subnet7C94356B10F6FEEA"
+   }
+  },
+  "ExportsOutputRefdevvpcpublicSubnet2SubnetF1219D44A3D1E741": {
+   "Value": {
+    "Ref": "devvpcpublicSubnet2SubnetF1219D44"
+   },
+   "Export": {
+    "Name": "dev-vpc-stack:ExportsOutputRefdevvpcpublicSubnet2SubnetF1219D44A3D1E741"
+   }
+  },
+  "ExportsOutputRefdevvpc914971804F00FA14": {
+   "Value": {
+    "Ref": "devvpc91497180"
+   },
+   "Export": {
+    "Name": "dev-vpc-stack:ExportsOutputRefdevvpc914971804F00FA14"
+   }
+  },
+  "ExportsOutputRefdevvpcprivateSubnet1Subnet3F15C46D0BE605D6": {
+   "Value": {
+    "Ref": "devvpcprivateSubnet1Subnet3F15C46D"
+   },
+   "Export": {
+    "Name": "dev-vpc-stack:ExportsOutputRefdevvpcprivateSubnet1Subnet3F15C46D0BE605D6"
+   }
+  },
+  "ExportsOutputRefdevvpcprivateSubnet2SubnetB94607F3D39D5CB1": {
+   "Value": {
+    "Ref": "devvpcprivateSubnet2SubnetB94607F3"
+   },
+   "Export": {
+    "Name": "dev-vpc-stack:ExportsOutputRefdevvpcprivateSubnet2SubnetB94607F3D39D5CB1"
+   }
+  },
+  "ExportsOutputFnGetAttdevecssg4E8E432AGroupId4D5F10D4": {
+   "Value": {
+    "Fn::GetAtt": [
+     "devecssg4E8E432A",
+     "GroupId"
+    ]
+   },
+   "Export": {
+    "Name": "dev-vpc-stack:ExportsOutputFnGetAttdevecssg4E8E432AGroupId4D5F10D4"
+   }
+  },
+  "ExportsOutputFnGetAttdevlambdasgC7C79100GroupId5856BE56": {
+   "Value": {
+    "Fn::GetAtt": [
+     "devlambdasgC7C79100",
+     "GroupId"
+    ]
+   },
+   "Export": {
+    "Name": "dev-vpc-stack:ExportsOutputFnGetAttdevlambdasgC7C79100GroupId5856BE56"
+   }
+  }
+ },
+ "Parameters": {
+  "BootstrapVersion": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/cdk-bootstrap/hnb659fds/version",
+   "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
+  }
+ },
+ "Rules": {
+  "CheckBootstrapVersion": {
+   "Assertions": [
+    {
+     "Assert": {
+      "Fn::Not": [
+       {
+        "Fn::Contains": [
+         [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+         ],
+         {
+          "Ref": "BootstrapVersion"
+         }
+        ]
+       }
+      ]
+     },
+     "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI."
+    }
+   ]
+  }
+ }
+}

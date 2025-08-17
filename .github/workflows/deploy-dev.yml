@@ -1,0 +1,101 @@
+name: Deploy Dev Environment
+
+on:
+  push:
+    branches: [dev]
+  pull_request:
+    branches: [dev]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment to deploy"
+        required: true
+        default: "dev"
+        type: choice
+        options:
+          - dev
+
+env:
+  AWS_REGION: ap-south-1
+  ENVIRONMENT: dev
+
+jobs:
+  deploy:
+    name: Deploy Dev Infrastructure
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+
+      - name: Install AWS CDK
+        run: npm install -g aws-cdk
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Bootstrap CDK (if needed)
+        run: |
+          cd infrastructure
+          cdk bootstrap || echo "CDK already bootstrapped"
+
+      - name: Synthesize CDK
+        run: |
+          cd infrastructure
+          cdk synth
+
+      - name: Deploy Infrastructure
+        run: |
+          cd infrastructure
+          cdk deploy --all --require-approval never
+
+      - name: Build and Push Docker Image
+        run: |
+          # Login to ECR
+          aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
+
+          # Build image
+          docker build -t dev-bluepansy-api .
+
+          # Tag for ECR
+          docker tag dev-bluepansy-api:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/dev-bluepansy-api:latest
+
+          # Push to ECR
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/dev-bluepansy-api:latest
+
+      - name: Update ECS Service
+        run: |
+          # Force new deployment to pick up the new image
+          aws ecs update-service --cluster dev-bluepansy-cluster --service dev-bluepansy-service --force-new-deployment
+
+      - name: Wait for ECS Service Stability
+        run: |
+          aws ecs wait services-stable --cluster dev-bluepansy-cluster --services dev-bluepansy-service
+
+      - name: Deployment Summary
+        run: |
+          echo "🚀 Dev Environment Deployment Complete!"
+          echo "🌐 API Endpoint: https://dev-api.bluepansy.in"
+          echo "📊 ECS Service: dev-bluepansy-service"
+          echo "🗄️  RDS Database: dev-database"
