@@ -9,27 +9,27 @@ class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
     
     # Application
-    app_name: str = Field(default="BP Backend", description="Application name")
-    environment: str = Field(default="dev", alias="ENV", description="Environment (dev/prod)")
-    debug: bool = Field(default=False, description="Debug mode")
+    app_name: Optional[str] = Field(default="BP Backend", description="Application name")
+    environment: Optional[str] = Field(default="dev", alias="ENV", description="Environment (dev/prod)")
+    debug: Optional[bool] = Field(default=False, description="Debug mode")
     
     # Security
-    secret_key: str = Field(..., description="Secret key for JWT signing")
-    jwt_algorithm: str = Field(default="HS256", description="JWT algorithm")
-    access_token_ttl_minutes: int = Field(default=30, description="Access token TTL in minutes")
-    refresh_token_ttl_days: int = Field(default=7, description="Refresh token TTL in days")
+    secret_key: Optional[str] = Field(..., description="Secret key for JWT signing")
+    jwt_algorithm: Optional[str] = Field(default="HS256", description="JWT algorithm")
+    access_token_ttl_minutes: Optional[int] = Field(default=30, description="Access token TTL in minutes")
+    refresh_token_ttl_days: Optional[int] = Field(default=7, description="Refresh token TTL in days")
     
     # Database
     database_url: str = Field(..., description="Database connection URL")
     
     # CORS
-    cors_origins: str = Field(
+    cors_origins: Optional[str] = Field(
         default="http://localhost:3000",
         description="Comma-separated CORS origins"
     )
     
     # Frontend
-    frontend_url: str = Field(
+    frontend_url: Optional[str] = Field(
         default="http://localhost:3000",
         description="Frontend application URL for OAuth redirects"
     )
@@ -50,14 +50,14 @@ class Settings(BaseSettings):
     razorpay_key_secret: Optional[str] = Field(default=None, description="Razorpay key secret")
     
     # Admin User (for seeding)
-    admin_email: str = Field(default="admin@example.com", description="Admin user email")
-    admin_password: str = Field(default="admin123", description="Admin user password")
+    admin_email: Optional[str] = Field(default="admin@example.com", description="Admin user email")
+    admin_password: Optional[str] = Field(default="admin123", description="Admin user password")
     
     @property
     def cors_origins_list(self) -> List[str]:
         """Get CORS origins as a list."""
         if not self.cors_origins.strip():
-            return ["http://localhost:3000"]
+            return ["http://localhost:3000", "https://bluepansy.in", "https://beta.bluepansy.in", "https://qa.bluepansy.in", "https://dev.bluepansy.in"]
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
     
     @field_validator("environment")
