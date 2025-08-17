@@ -66,20 +66,6 @@ jobs:
           # Basic health check
           curl -f https://dev-api.bluepansy.in/health || echo "Health check failed - service might still be starting"
 
-      - name: Run Database Migrations
-        run: |
-          echo "🔄 Running database migrations..."
-
-          # Run migrations using the deployed Docker container
-          # This ensures all dependencies are available
-          docker run --rm \
-            -e DATABASE_URL="${{ secrets.DATABASE_URL }}" \
-            -e PYTHONPATH=/app \
-            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/dev-bluepansy-api:latest \
-            alembic upgrade head
-
-          echo "✅ Database migrations completed successfully!"
-
       - name: Deployment Summary
         run: |
           echo "🚀 App Deployment to Dev Complete!"

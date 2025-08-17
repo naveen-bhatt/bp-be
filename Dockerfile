@@ -28,6 +28,10 @@ RUN pip install --no-cache-dir --upgrade pip \
 # Copy application code
 COPY . .
 
+# Copy startup script and make it executable
+COPY scripts/startup.sh /app/startup.sh
+RUN chmod +x /app/startup.sh
+
 # Create non-root user
 RUN addgroup --system --gid 1001 appgroup \
     && adduser --system --uid 1001 --gid 1001 --no-create-home appuser
@@ -45,5 +49,5 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-# Simple startup - just run the app without migrations for now
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Use startup script instead of direct uvicorn
+CMD ["/app/startup.sh"]
