@@ -164,6 +164,279 @@
        "Resource": {
         "Fn::ImportValue": "dev-rds-stack:ExportsOutputRefdevdatabaseSecretAttachmentFA3A5AD7128FC06B"
        }
+      },
+      {
+       "Action": [
+        "ssm:DescribeParameters",
+        "ssm:GetParameters",
+        "ssm:GetParameter",
+        "ssm:GetParameterHistory"
+       ],
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::Join": [
+         "",
+         [
+          "arn:",
+          {
+           "Ref": "AWS::Partition"
+          },
+          ":ssm:ap-south-1:070949690701:parameter/dev/secret_key"
+         ]
+        ]
+       }
+      },
+      {
+       "Action": [
+        "ssm:DescribeParameters",
+        "ssm:GetParameters",
+        "ssm:GetParameter",
+        "ssm:GetParameterHistory"
+       ],
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::Join": [
+         "",
+         [
+          "arn:",
+          {
+           "Ref": "AWS::Partition"
+          },
+          ":ssm:ap-south-1:070949690701:parameter/dev/jwt_algorithm"
+         ]
+        ]
+       }
+      },
+      {
+       "Action": [
+        "ssm:DescribeParameters",
+        "ssm:GetParameters",
+        "ssm:GetParameter",
+        "ssm:GetParameterHistory"
+       ],
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::Join": [
+         "",
+         [
+          "arn:",
+          {
+           "Ref": "AWS::Partition"
+          },
+          ":ssm:ap-south-1:070949690701:parameter/dev/access_token_ttl_minutes"
+         ]
+        ]
+       }
+      },
+      {
+       "Action": [
+        "ssm:DescribeParameters",
+        "ssm:GetParameters",
+        "ssm:GetParameter",
+        "ssm:GetParameterHistory"
+       ],
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::Join": [
+         "",
+         [
+          "arn:",
+          {
+           "Ref": "AWS::Partition"
+          },
+          ":ssm:ap-south-1:070949690701:parameter/dev/refresh_token_ttl_days"
+         ]
+        ]
+       }
+      },
+      {
+       "Action": [
+        "ssm:DescribeParameters",
+        "ssm:GetParameters",
+        "ssm:GetParameter",
+        "ssm:GetParameterHistory"
+       ],
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::Join": [
+         "",
+         [
+          "arn:",
+          {
+           "Ref": "AWS::Partition"
+          },
+          ":ssm:ap-south-1:070949690701:parameter/dev/cors_origins"
+         ]
+        ]
+       }
+      },
+      {
+       "Action": [
+        "ssm:DescribeParameters",
+        "ssm:GetParameters",
+        "ssm:GetParameter",
+        "ssm:GetParameterHistory"
+       ],
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::Join": [
+         "",
+         [
+          "arn:",
+          {
+           "Ref": "AWS::Partition"
+          },
+          ":ssm:ap-south-1:070949690701:parameter/dev/frontend_url"
+         ]
+        ]
+       }
+      },
+      {
+       "Action": [
+        "ssm:DescribeParameters",
+        "ssm:GetParameters",
+        "ssm:GetParameter",
+        "ssm:GetParameterHistory"
+       ],
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::Join": [
+         "",
+         [
+          "arn:",
+          {
+           "Ref": "AWS::Partition"
+          },
+          ":ssm:ap-south-1:070949690701:parameter/dev/google_client_id"
+         ]
+        ]
+       }
+      },
+      {
+       "Action": [
+        "ssm:DescribeParameters",
+        "ssm:GetParameters",
+        "ssm:GetParameter",
+        "ssm:GetParameterHistory"
+       ],
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::Join": [
+         "",
+         [
+          "arn:",
+          {
+           "Ref": "AWS::Partition"
+          },
+          ":ssm:ap-south-1:070949690701:parameter/dev/google_client_secret"
+         ]
+        ]
+       }
+      },
+      {
+       "Action": [
+        "ssm:DescribeParameters",
+        "ssm:GetParameters",
+        "ssm:GetParameter",
+        "ssm:GetParameterHistory"
+       ],
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::Join": [
+         "",
+         [
+          "arn:",
+          {
+           "Ref": "AWS::Partition"
+          },
+          ":ssm:ap-south-1:070949690701:parameter/dev/stripe_secret_key"
+         ]
+        ]
+       }
+      },
+      {
+       "Action": [
+        "ssm:DescribeParameters",
+        "ssm:GetParameters",
+        "ssm:GetParameter",
+        "ssm:GetParameterHistory"
+       ],
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::Join": [
+         "",
+         [
+          "arn:",
+          {
+           "Ref": "AWS::Partition"
+          },
+          ":ssm:ap-south-1:070949690701:parameter/dev/razorpay_key_id"
+         ]
+        ]
+       }
+      },
+      {
+       "Action": [
+        "ssm:DescribeParameters",
+        "ssm:GetParameters",
+        "ssm:GetParameter",
+        "ssm:GetParameterHistory"
+       ],
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::Join": [
+         "",
+         [
+          "arn:",
+          {
+           "Ref": "AWS::Partition"
+          },
+          ":ssm:ap-south-1:070949690701:parameter/dev/razorpay_key_secret"
+         ]
+        ]
+       }
+      },
+      {
+       "Action": [
+        "ssm:DescribeParameters",
+        "ssm:GetParameters",
+        "ssm:GetParameter",
+        "ssm:GetParameterHistory"
+       ],
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::Join": [
+         "",
+         [
+          "arn:",
+          {
+           "Ref": "AWS::Partition"
+          },
+          ":ssm:ap-south-1:070949690701:parameter/dev/admin_email"
+         ]
+        ]
+       }
+      },
+      {
+       "Action": [
+        "ssm:DescribeParameters",
+        "ssm:GetParameters",
+        "ssm:GetParameter",
+        "ssm:GetParameterHistory"
+       ],
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::Join": [
+         "",
+         [
+          "arn:",
+          {
+           "Ref": "AWS::Partition"
+          },
+          ":ssm:ap-south-1:070949690701:parameter/dev/admin_password"
+         ]
+        ]
+       }
       }
      ],
      "Version": "2012-10-17"
@@ -377,6 +650,201 @@
             "Fn::ImportValue": "dev-rds-stack:ExportsOutputRefdevdatabaseSecretAttachmentFA3A5AD7128FC06B"
            },
            ":password::"
+          ]
+         ]
+        }
+       },
+       {
+        "Name": "SECRET_KEY",
+        "ValueFrom": {
+         "Fn::Join": [
+          "",
+          [
+           "arn:",
+           {
+            "Ref": "AWS::Partition"
+           },
+           ":ssm:ap-south-1:070949690701:parameter/dev/secret_key"
+          ]
+         ]
+        }
+       },
+       {
+        "Name": "JWT_ALGORITHM",
+        "ValueFrom": {
+         "Fn::Join": [
+          "",
+          [
+           "arn:",
+           {
+            "Ref": "AWS::Partition"
+           },
+           ":ssm:ap-south-1:070949690701:parameter/dev/jwt_algorithm"
+          ]
+         ]
+        }
+       },
+       {
+        "Name": "ACCESS_TOKEN_TTL_MINUTES",
+        "ValueFrom": {
+         "Fn::Join": [
+          "",
+          [
+           "arn:",
+           {
+            "Ref": "AWS::Partition"
+           },
+           ":ssm:ap-south-1:070949690701:parameter/dev/access_token_ttl_minutes"
+          ]
+         ]
+        }
+       },
+       {
+        "Name": "REFRESH_TOKEN_TTL_DAYS",
+        "ValueFrom": {
+         "Fn::Join": [
+          "",
+          [
+           "arn:",
+           {
+            "Ref": "AWS::Partition"
+           },
+           ":ssm:ap-south-1:070949690701:parameter/dev/refresh_token_ttl_days"
+          ]
+         ]
+        }
+       },
+       {
+        "Name": "CORS_ORIGINS",
+        "ValueFrom": {
+         "Fn::Join": [
+          "",
+          [
+           "arn:",
+           {
+            "Ref": "AWS::Partition"
+           },
+           ":ssm:ap-south-1:070949690701:parameter/dev/cors_origins"
+          ]
+         ]
+        }
+       },
+       {
+        "Name": "FRONTEND_URL",
+        "ValueFrom": {
+         "Fn::Join": [
+          "",
+          [
+           "arn:",
+           {
+            "Ref": "AWS::Partition"
+           },
+           ":ssm:ap-south-1:070949690701:parameter/dev/frontend_url"
+          ]
+         ]
+        }
+       },
+       {
+        "Name": "GOOGLE_CLIENT_ID",
+        "ValueFrom": {
+         "Fn::Join": [
+          "",
+          [
+           "arn:",
+           {
+            "Ref": "AWS::Partition"
+           },
+           ":ssm:ap-south-1:070949690701:parameter/dev/google_client_id"
+          ]
+         ]
+        }
+       },
+       {
+        "Name": "GOOGLE_CLIENT_SECRET",
+        "ValueFrom": {
+         "Fn::Join": [
+          "",
+          [
+           "arn:",
+           {
+            "Ref": "AWS::Partition"
+           },
+           ":ssm:ap-south-1:070949690701:parameter/dev/google_client_secret"
+          ]
+         ]
+        }
+       },
+       {
+        "Name": "STRIPE_SECRET_KEY",
+        "ValueFrom": {
+         "Fn::Join": [
+          "",
+          [
+           "arn:",
+           {
+            "Ref": "AWS::Partition"
+           },
+           ":ssm:ap-south-1:070949690701:parameter/dev/stripe_secret_key"
+          ]
+         ]
+        }
+       },
+       {
+        "Name": "RAZORPAY_KEY_ID",
+        "ValueFrom": {
+         "Fn::Join": [
+          "",
+          [
+           "arn:",
+           {
+            "Ref": "AWS::Partition"
+           },
+           ":ssm:ap-south-1:070949690701:parameter/dev/razorpay_key_id"
+          ]
+         ]
+        }
+       },
+       {
+        "Name": "RAZORPAY_KEY_SECRET",
+        "ValueFrom": {
+         "Fn::Join": [
+          "",
+          [
+           "arn:",
+           {
+            "Ref": "AWS::Partition"
+           },
+           ":ssm:ap-south-1:070949690701:parameter/dev/razorpay_key_secret"
+          ]
+         ]
+        }
+       },
+       {
+        "Name": "ADMIN_EMAIL",
+        "ValueFrom": {
+         "Fn::Join": [
+          "",
+          [
+           "arn:",
+           {
+            "Ref": "AWS::Partition"
+           },
+           ":ssm:ap-south-1:070949690701:parameter/dev/admin_email"
+          ]
+         ]
+        }
+       },
+       {
+        "Name": "ADMIN_PASSWORD",
+        "ValueFrom": {
+         "Fn::Join": [
+          "",
+          [
+           "arn:",
+           {
+            "Ref": "AWS::Partition"
+           },
+           ":ssm:ap-south-1:070949690701:parameter/dev/admin_password"
           ]
          ]
         }
@@ -677,11 +1145,70 @@
   "CDKMetadata": {
    "Type": "AWS::CDK::Metadata",
    "Properties": {
-    "Analytics": "v2:deflate64:H4sIAAAAAAAA/11PXU/DMAz8LXvPAi2/AIbgZRJTt3fkZV4xzeIqcYamKv+d9AsKTz7fneW7UpdFoe9X8BXW5tSsLR11txcwjcrUe4fG667ClgMJ+5vanN3vlhSaoLuNjUHQ99oMX8DXIHiA0DzjmRwJsesN/xl2AuTQL7jpdo/+Sgb7owkmRXDJadgO7DB3bMkMsUaUlOU6Z9py/eo5tr0y4xzXQhAyluF0BAvOkKuvpe4e2zYfQ/9+m7WnQRsb/dmXPspF3eSZ8UI/5BYoPxkWa0qqwsDRj+XeorRRktrd5IPd3YMuSl2uPgPR2kcndEFdjfMbK9nJ2qwBAAA="
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/11Qy07DMBD8lt5dQ8IXQBFcKhGlvaOtuw1LHG9kr4uqKP+O84LAaWdnZuUZ5zrPMn2/ga+wNed6a+mku4OAqVWi3js0XnclthxI2N/U7uJ+t16hCbrb2RgE/aAt8AV8BYJHCPUzXsiRELvB8J9hJ0AO/Yqbbw/or2RwOJphrwialIbtyI6zYEtmjDWhXlmuUqY9V6+eYzsoC05xLQQhYxnOJ7DgDLnqmuvusW3TMQzP75P2NGpToz/72kepqJs9C17px9QC5SfDau17VWLg6KdyBXhocP6/tyhtlF4VN/lgd/egs1znm89AtPXRCTWoy2l+A+cJZ7q5AQAA"
    },
    "Metadata": {
     "aws:cdk:path": "dev-ecs-stack/CDKMetadata/Default"
    }
+  }
+ },
+ "Parameters": {
+  "devsecretkeyparamParameter": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/dev/secret_key"
+  },
+  "devjwtalgorithmparamParameter": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/dev/jwt_algorithm"
+  },
+  "devaccesstokenttlparamParameter": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/dev/access_token_ttl_minutes"
+  },
+  "devrefreshtokenttlparamParameter": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/dev/refresh_token_ttl_days"
+  },
+  "devcorsoriginsparamParameter": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/dev/cors_origins"
+  },
+  "devfrontendurlparamParameter": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/dev/frontend_url"
+  },
+  "devgoogleclientidparamParameter": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/dev/google_client_id"
+  },
+  "devgoogleclientsecretparamParameter": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/dev/google_client_secret"
+  },
+  "devstripesecretkeyparamParameter": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/dev/stripe_secret_key"
+  },
+  "devrazorpaykeyidparamParameter": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/dev/razorpay_key_id"
+  },
+  "devrazorpaykeysecretparamParameter": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/dev/razorpay_key_secret"
+  },
+  "devadminemailparamParameter": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/dev/admin_email"
+  },
+  "devadminpasswordparamParameter": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/dev/admin_password"
+  },
+  "BootstrapVersion": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/cdk-bootstrap/hnb659fds/version",
+   "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
   }
  },
  "Outputs": {
@@ -812,13 +1339,6 @@
    "Export": {
     "Name": "dev-ecs-stack:ExportsOutputFnGetAttdevalbA03094B9DNSName601887C6"
    }
-  }
- },
- "Parameters": {
-  "BootstrapVersion": {
-   "Type": "AWS::SSM::Parameter::Value<String>",
-   "Default": "/cdk-bootstrap/hnb659fds/version",
-   "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
   }
  },
  "Rules": {

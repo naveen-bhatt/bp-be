@@ -74,12 +74,12 @@ class LambdaStack(Stack):
         self._grant_permissions()
         
         # Create CloudWatch Event Rule for auto-stop (only for dev/qa)
-        if config.environment in ['dev', 'qa']:
+        if config.environment in ['dev', 'qa', "beta"]:
             auto_stop_rule = events.Rule(
                 self, 
                 f"{config.environment}-auto-stop-rule",
-                schedule=events.Schedule.rate(Duration.minutes(5)),
-                description=f"Auto-stop services every 5 minutes for {config.environment} environment",
+                schedule=events.Schedule.rate(Duration.minutes(60)),
+                description=f"Auto-stop services every 60 minutes for {config.environment} environment",
             )
             
             auto_stop_rule.add_target(targets.LambdaFunction(self.auto_stop_lambda))

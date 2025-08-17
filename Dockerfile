@@ -1,5 +1,5 @@
-# Use Python 3.11 slim image
-FROM python:3.11-slim
+# Use Python 3.12 slim image (matching your local environment)
+FROM python:3.12-slim
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -15,14 +15,15 @@ RUN apt-get update \
         build-essential \
         default-libmysqlclient-dev \
         pkg-config \
+        curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements files
-COPY pyproject.toml ./
+# Copy requirements file first for better caching
+COPY requirements.txt ./
 
 # Install Python dependencies
 RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir -e .
+    && pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY . .
@@ -44,5 +45,20 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-# Run the application
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Create startup script
+RUN echo '#!/bin/bash\n\
+# Wait for database to be ready\n\
+echo "Waiting for database..."\n\
+sleep 10\n\
+\n\
+# Run Alembic migrations\n\
+echo "Running database migrations..."\n\
+alembic upgrade head\n\
+\n\
+# Start the application\n\
+echo "Starting application..."\n\
+exec uvicorn app.main:app --host 0.0.0.0 --port 8000\n\
+' > /app/start.sh && chmod +x /app/start.sh
+
+# Run the startup script
+CMD ["/app/start.sh"]

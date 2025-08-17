@@ -12,6 +12,7 @@ from aws_cdk import aws_ecr as ecr
 from aws_cdk import aws_elasticloadbalancingv2 as elbv2
 from aws_cdk import aws_iam as iam
 from aws_cdk import aws_logs as logs
+from aws_cdk import aws_ssm as ssm
 from constructs import Construct
 from config.environment_config import EnvironmentConfig
 
@@ -67,7 +68,101 @@ class EcsStack(Stack):
                 'LOG_LEVEL': 'INFO' if config.environment == 'production' else 'DEBUG',
             },
             secrets={
+                # Database password from Secrets Manager
                 'DATABASE_PASSWORD': ecs.Secret.from_secrets_manager(database.secret, 'password'),
+                
+                # Application configuration from Parameter Store
+                'SECRET_KEY': ecs.Secret.from_ssm_parameter(
+                    ssm.StringParameter.from_string_parameter_attributes(
+                        self, 
+                        f"{config.environment}-secret-key-param",
+                        parameter_name=f"/{config.environment}/secret_key"
+                    )
+                ),
+                'JWT_ALGORITHM': ecs.Secret.from_ssm_parameter(
+                    ssm.StringParameter.from_string_parameter_attributes(
+                        self, 
+                        f"{config.environment}-jwt-algorithm-param",
+                        parameter_name=f"/{config.environment}/jwt_algorithm"
+                    )
+                ),
+                'ACCESS_TOKEN_TTL_MINUTES': ecs.Secret.from_ssm_parameter(
+                    ssm.StringParameter.from_string_parameter_attributes(
+                        self, 
+                        f"{config.environment}-access-token-ttl-param",
+                        parameter_name=f"/{config.environment}/access_token_ttl_minutes"
+                    )
+                ),
+                'REFRESH_TOKEN_TTL_DAYS': ecs.Secret.from_ssm_parameter(
+                    ssm.StringParameter.from_string_parameter_attributes(
+                        self, 
+                        f"{config.environment}-refresh-token-ttl-param",
+                        parameter_name=f"/{config.environment}/refresh_token_ttl_days"
+                    )
+                ),
+                'CORS_ORIGINS': ecs.Secret.from_ssm_parameter(
+                    ssm.StringParameter.from_string_parameter_attributes(
+                        self, 
+                        f"{config.environment}-cors-origins-param",
+                        parameter_name=f"/{config.environment}/cors_origins"
+                    )
+                ),
+                'FRONTEND_URL': ecs.Secret.from_ssm_parameter(
+                    ssm.StringParameter.from_string_parameter_attributes(
+                        self, 
+                        f"{config.environment}-frontend-url-param",
+                        parameter_name=f"/{config.environment}/frontend_url"
+                    )
+                ),
+                'GOOGLE_CLIENT_ID': ecs.Secret.from_ssm_parameter(
+                    ssm.StringParameter.from_string_parameter_attributes(
+                        self, 
+                        f"{config.environment}-google-client-id-param",
+                        parameter_name=f"/{config.environment}/google_client_id"
+                    )
+                ),
+                'GOOGLE_CLIENT_SECRET': ecs.Secret.from_ssm_parameter(
+                    ssm.StringParameter.from_string_parameter_attributes(
+                        self, 
+                        f"{config.environment}-google-client-secret-param",
+                        parameter_name=f"/{config.environment}/google_client_secret"
+                    )
+                ),
+                'STRIPE_SECRET_KEY': ecs.Secret.from_ssm_parameter(
+                    ssm.StringParameter.from_string_parameter_attributes(
+                        self, 
+                        f"{config.environment}-stripe-secret-key-param",
+                        parameter_name=f"/{config.environment}/stripe_secret_key"
+                    )
+                ),
+                'RAZORPAY_KEY_ID': ecs.Secret.from_ssm_parameter(
+                    ssm.StringParameter.from_string_parameter_attributes(
+                        self, 
+                        f"{config.environment}-razorpay-key-id-param",
+                        parameter_name=f"/{config.environment}/razorpay_key_id"
+                    )
+                ),
+                'RAZORPAY_KEY_SECRET': ecs.Secret.from_ssm_parameter(
+                    ssm.StringParameter.from_string_parameter_attributes(
+                        self, 
+                        f"{config.environment}-razorpay-key-secret-param",
+                        parameter_name=f"/{config.environment}/razorpay_key_secret"
+                    )
+                ),
+                'ADMIN_EMAIL': ecs.Secret.from_ssm_parameter(
+                    ssm.StringParameter.from_string_parameter_attributes(
+                        self, 
+                        f"{config.environment}-admin-email-param",
+                        parameter_name=f"/{config.environment}/admin_email"
+                    )
+                ),
+                'ADMIN_PASSWORD': ecs.Secret.from_ssm_parameter(
+                    ssm.StringParameter.from_string_parameter_attributes(
+                        self, 
+                        f"{config.environment}-admin-password-param",
+                        parameter_name=f"/{config.environment}/admin_password"
+                    )
+                ),
             },
             logging=ecs.LogDrivers.aws_logs(
                 stream_prefix=f"{config.environment}-api",

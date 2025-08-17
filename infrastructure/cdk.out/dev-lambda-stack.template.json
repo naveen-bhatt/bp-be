@@ -360,8 +360,8 @@
   "devautostoprule1B51F2AB": {
    "Type": "AWS::Events::Rule",
    "Properties": {
-    "Description": "Auto-stop services every 5 minutes for dev environment",
-    "ScheduleExpression": "rate(5 minutes)",
+    "Description": "Auto-stop services every 60 minutes for dev environment",
+    "ScheduleExpression": "rate(1 hour)",
     "State": "ENABLED",
     "Targets": [
      {

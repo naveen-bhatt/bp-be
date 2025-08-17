@@ -177,7 +177,7 @@ class EnvironmentConfigBuilder:
             backup_retention=7 if is_production else 0,
             deletion_protection=is_production,
             auto_stop=is_dev or env == 'qa',
-            auto_stop_minutes=5,
+            auto_stop_minutes=60,
             mysql_version='8.0.39'  # Use MySQL 8.0.39 as requested
         )
     
