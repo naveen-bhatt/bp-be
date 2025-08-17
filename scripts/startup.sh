@@ -3,6 +3,9 @@ set -e
 
 echo "🚀 Starting BluePansy API startup sequence..."
 
+# Change to app directory to ensure proper context
+cd /app
+
 # Wait for database to be ready
 echo "⏳ Waiting for database to be ready..."
 until python -c "
@@ -67,6 +70,8 @@ done
 
 # Run database migrations
 echo "🔄 Running database migrations..."
+echo "Current working directory: $(pwd)"
+echo "Alembic version: $(alembic --version)"
 alembic upgrade head
 
 # Start the main application
