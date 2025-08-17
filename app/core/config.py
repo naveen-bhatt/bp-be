@@ -56,9 +56,23 @@ class Settings(BaseSettings):
     @property
     def cors_origins_list(self) -> List[str]:
         """Get CORS origins as a list."""
-        if not self.cors_origins.strip():
-            return ["http://localhost:3000", "https://bluepansy.in", "https://beta.bluepansy.in", "https://qa.bluepansy.in", "https://dev.bluepansy.in"]
-        return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+        # Always include the main domains
+        default_origins = [
+            "http://localhost:3000",
+            "https://bluepansy.in", 
+            "https://beta.bluepansy.in", 
+            "https://qa.bluepansy.in", 
+            "https://dev.bluepansy.in"
+        ]
+        
+        # If custom CORS origins are provided, use them
+        if self.cors_origins and self.cors_origins.strip():
+            custom_origins = [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+            if custom_origins:
+                return custom_origins
+        
+        # Return default origins
+        return default_origins
     
     @field_validator("environment")
     @classmethod
@@ -100,3 +114,10 @@ class Settings(BaseSettings):
 
 # Global settings instance
 settings = Settings()
+
+# Debug logging for CORS configuration
+import logging
+logger = logging.getLogger(__name__)
+logger.info(f"CORS origins from env: '{settings.cors_origins}'")
+logger.info(f"CORS origins list: {settings.cors_origins_list}")
+logger.info(f"Environment: {settings.environment}")

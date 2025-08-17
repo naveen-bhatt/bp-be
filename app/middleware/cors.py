@@ -16,11 +16,24 @@ def add_cors_middleware(app: FastAPI) -> None:
     Args:
         app: FastAPI application instance.
     """
-    logger.info(f"Configuring CORS with origins: {settings.cors_origins_list}")
+    # Ensure we have CORS origins
+    cors_origins = settings.cors_origins_list
+    if not cors_origins:
+        # Fallback to default origins if none are configured
+        cors_origins = [
+            "http://localhost:3000",
+            "https://bluepansy.in", 
+            "https://beta.bluepansy.in", 
+            "https://qa.bluepansy.in", 
+            "https://dev.bluepansy.in"
+        ]
+        logger.warning(f"No CORS origins configured, using fallback: {cors_origins}")
+    
+    logger.info(f"Configuring CORS with origins: {cors_origins}")
     
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=settings.cors_origins_list,
+        allow_origins=cors_origins,
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=[
