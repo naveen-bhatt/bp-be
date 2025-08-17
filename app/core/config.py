@@ -14,13 +14,13 @@ class Settings(BaseSettings):
     debug: Optional[bool] = Field(default=False, description="Debug mode")
     
     # Security
-    secret_key: Optional[str] = Field(..., description="Secret key for JWT signing")
+    secret_key: Optional[str] = Field(default=None, description="Secret key for JWT signing")
     jwt_algorithm: Optional[str] = Field(default="HS256", description="JWT algorithm")
     access_token_ttl_minutes: Optional[int] = Field(default=30, description="Access token TTL in minutes")
     refresh_token_ttl_days: Optional[int] = Field(default=7, description="Refresh token TTL in days")
     
     # Database
-    database_url: str = Field(..., description="Database connection URL")
+    database_url: Optional[str] = Field(default=None, description="Database connection URL")
     
     # CORS
     cors_origins: Optional[str] = Field(
