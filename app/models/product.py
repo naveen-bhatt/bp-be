@@ -57,7 +57,7 @@ class Product(BaseModel):
     
     # Pricing and inventory
     price = Column(DECIMAL(10, 2), nullable=False, index=True)
-    currency = Column(String(3), default="USD", nullable=False)
+    currency = Column(String(3), default="INR", nullable=False)
     quantity = Column(Integer, default=0, nullable=False, index=True)
     
     # Product lifecycle

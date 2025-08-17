@@ -135,7 +135,7 @@ class StripePaymentProvider(PaymentProvider):
                 provider_payment_id=provider_payment_id,
                 status="succeeded",
                 amount=Decimal("100.00"),  # Mock amount
-                currency="USD",
+                currency="INR",
                 metadata={}
             )
         
@@ -181,7 +181,7 @@ class StripePaymentProvider(PaymentProvider):
                 provider_payment_id=provider_payment_id,
                 status="succeeded",
                 amount=Decimal("100.00"),
-                currency="USD",
+                currency="INR",
                 metadata={}
             )
         
@@ -256,7 +256,7 @@ class StripePaymentProvider(PaymentProvider):
                 provider_payment_id=payment_intent.get("id"),
                 status=status,
                 amount=Decimal(payment_intent.get("amount", 0)) / 100,
-                currency=payment_intent.get("currency", "USD").upper(),
+                currency=payment_intent.get("currency", "INR").upper(),
                 metadata=payment_intent.get("metadata", {})
             )
         
@@ -290,7 +290,7 @@ class StripePaymentProvider(PaymentProvider):
                 refund_id=f"re_mock_{provider_payment_id}",
                 payment_id=provider_payment_id,
                 amount=amount or Decimal("100.00"),
-                currency="USD",
+                currency="INR",
                 status="succeeded"
             )
         

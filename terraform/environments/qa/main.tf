@@ -132,6 +132,10 @@ resource "aws_ecs_task_definition" "api" {
         {
           name  = "LOG_LEVEL"
           value = "DEBUG"
+        },
+        {
+          name  = "PYTHONPATH"
+          value = "/app"
         }
       ]
       
@@ -197,6 +201,8 @@ resource "aws_ecs_task_definition" "api" {
           valueFrom = "/${var.environment}/admin_password"
         }
       ]
+      
+      command = ["/app/startup.sh"]
       
       logConfiguration = {
         logDriver = "awslogs"

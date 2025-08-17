@@ -30,7 +30,7 @@ class ProductBase(BaseModel):
     main_image_url: Optional[str] = Field(None, max_length=500, description="Main product image URL")
     slide_image_urls: Optional[List[str]] = Field(None, description="Slide image URLs array")
     price: str = Field(..., description="Product price as decimal string")
-    currency: str = Field(default="USD", description="Currency code")
+    currency: str = Field(default="INR", description="Currency code")
     quantity: int = Field(default=0, ge=0, description="Available stock quantity")
     date_of_manufacture: Optional[datetime] = Field(None, description="Date of manufacture")
     expiry_duration_months: Optional[int] = Field(None, description="Months until expiry")
