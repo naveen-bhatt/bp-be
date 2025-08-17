@@ -6,26 +6,27 @@ This document explains how database migrations are now automatically handled dur
 
 ## How It Works
 
-### 1. Startup Script (`scripts/startup.sh`)
+### 1. Post-Deployment Migration
 
-The startup script performs the following sequence:
+Migrations are automatically executed after successful deployment:
 
-1. **Database Readiness Check**: Waits for the database to be accessible
-2. **Run Migrations**: Executes `alembic upgrade head` to apply all pending migrations
-3. **Start Application**: Launches the main FastAPI application with uvicorn
+1. **Application Deployment**: New code is deployed and health checks pass
+2. **Migration Execution**: `alembic upgrade head` runs automatically
+3. **Schema Update**: Database schema is updated to match new code requirements
 
-### 2. Docker Container Changes
+### 2. GitHub Actions Integration
 
-- **Dockerfile**: Now copies and uses the startup script instead of directly running uvicorn
-- **Command Override**: ECS task definition explicitly sets the command to `/app/startup.sh`
+- **Post-Health Check**: Migrations run after application is confirmed healthy
+- **Automatic Execution**: No manual intervention required
+- **Failure Handling**: If migrations fail, deployment workflow shows error
 
-### 3. ECS Task Definition Updates
+### 3. GitHub Actions Workflow Updates
 
 All environments (dev, qa, beta, production) now include:
 
-- **Command Override**: `command = ["/app/startup.sh"]`
-- **PYTHONPATH**: Set to `/app` for proper module resolution
-- **Startup Script**: Ensures migrations run before application startup
+- **Post-Deployment Migration Step**: Automatically runs `alembic upgrade head`
+- **Health Check Validation**: Ensures application is running before migrations
+- **Automatic Execution**: No manual intervention required
 
 ## Benefits
 

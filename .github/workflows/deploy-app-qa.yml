@@ -66,6 +66,21 @@ jobs:
           # Basic health check
           curl -f https://qa-api.bluepansy.in/health || echo "Health check failed - service might still be starting"
 
+      - name: Run Database Migrations
+        run: |
+          echo "🔄 Running database migrations..."
+
+          # Install alembic
+          pip install alembic
+
+          # Set database URL from secrets
+          export DATABASE_URL="${{ secrets.DATABASE_URL }}"
+
+          # Run migrations
+          alembic upgrade head
+
+          echo "✅ Database migrations completed successfully!"
+
       - name: Deployment Summary
         run: |
           echo "🚀 App Deployment to QA Complete!"
