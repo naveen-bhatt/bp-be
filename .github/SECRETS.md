@@ -112,4 +112,4 @@ The current setup uses the same AWS credentials for all environments. If you nee
 
 - Check GitHub Actions logs for detailed error messages
 - Verify AWS credentials work locally with `aws configure`
-- Test CDK commands manually before running workflows
+- Test AWS CLI commands manually before running workflows

@@ -54,3 +54,36 @@ env/
 ENV/
 venv/
 
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+.terraform.lock.hcl
+.terraform.tfstate.lock.info
+crash.log
+crash.*.log
+
+# Terraform provider files (these are large binary files)
+terraform/providers/
+**/.terraform/providers/
+**/.terraform/modules/
+**/.terraform/.terraform.lock.hcl
+
+# Terraform environment-specific files
+terraform/environments/*/.terraform/
+terraform/environments/*/*.tfstate
+terraform/environments/*/*.tfstate.*
+terraform/environments/*/.terraform.lock.hcl
+
+# Lambda function packages
+*.zip
+lambda_functions.zip
+terraform/lambda_functions.zip
+
+# AWS credentials and config
+.aws/
+aws-credentials
+aws-config
+

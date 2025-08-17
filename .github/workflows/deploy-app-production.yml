@@ -2,9 +2,9 @@ name: Deploy App to Production Environment
 
 on:
   push:
-    branches: [main, production]
+    branches: [main]
   pull_request:
-    branches: [main, production]
+    branches: [main]
   workflow_dispatch:
     inputs:
       environment:
@@ -41,22 +41,22 @@ jobs:
           aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
 
           # Build image
-          docker build -t production-bluepansy-api .
+          docker build -t prod-bluepansy-api .
 
           # Tag for ECR
-          docker tag production-bluepansy-api:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/production-bluepansy-api:latest
+          docker tag prod-bluepansy-api:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/prod-bluepansy-api:latest
 
           # Push to ECR
-          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/production-bluepansy-api:latest
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/prod-bluepansy-api:latest
 
       - name: Update ECS Service
         run: |
           # Force new deployment to pick up the new image
-          aws ecs update-service --cluster production-bluepansy-cluster --service production-bluepansy-service --force-new-deployment
+          aws ecs update-service --cluster prod-bluepansy-cluster --service prod-bluepansy-service --force-new-deployment
 
       - name: Wait for ECS Service Stability
         run: |
-          aws ecs wait services-stable --cluster production-bluepansy-cluster --services production-bluepansy-service
+          aws ecs wait services-stable --cluster prod-bluepansy-cluster --services prod-bluepansy-service
 
       - name: Health Check
         run: |
@@ -70,6 +70,6 @@ jobs:
         run: |
           echo "🚀 App Deployment to Production Complete!"
           echo "🌐 API Endpoint: https://api.bluepansy.in"
-          echo "📊 ECS Service: production-bluepansy-service"
-          echo "🐳 Docker Image: production-bluepansy-api:latest"
+          echo "📊 ECS Service: prod-bluepansy-service"
+          echo "🐳 Docker Image: prod-bluepansy-api:latest"
           echo "✅ Production deployment successful!"

@@ -26,9 +26,9 @@ feature/feature-name
 
 ### **Infrastructure Setup (Local, One-time)**
 
-- **Method**: CDK deployment from local machine
+- **Method**: Manual AWS Console setup or AWS CLI
 - **Purpose**: Create all AWS resources (VPC, RDS, ECS, etc.)
-- **Command**: `cdk deploy --all --context environment=<env>`
+- **Process**: Follow the same pattern as dev environment
 
 ### **Application Deployment (GitHub Actions, Automatic)**
 
@@ -71,8 +71,8 @@ feature/feature-name
 - **Purpose**: Production deployment
 - **Auto-deploy**: ✅ Yes
 - **Domain**: `api.bluepansy.in`
-- **ECS**: `production-bluepansy-cluster` → `production-bluepansy-service`
-- **ECR**: `production-bluepansy-api`
+- **ECS**: `prod-bluepansy-cluster` → `prod-bluepansy-service`
+- **ECR**: `prod-bluepansy-api`
 
 **Workflow**: `.github/workflows/deploy-app-production.yml`
 
