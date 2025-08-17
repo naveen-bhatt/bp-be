@@ -76,7 +76,7 @@ jobs:
             -e DATABASE_URL="${{ secrets.DATABASE_URL }}" \
             -e PYTHONPATH=/app \
             ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/prod-bluepansy-api:latest \
-            alembic upgrade head
+            alembic upgrade head --config /app/alembic.ini
 
           echo "✅ Database migrations completed successfully!"
 
