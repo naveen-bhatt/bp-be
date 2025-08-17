@@ -24,45 +24,57 @@ feature/feature-name
 
 ## 🚀 Deployment Workflow
 
-### **1. Development Environment (`dev` branch)**
+### **Infrastructure Setup (Local, One-time)**
+
+- **Method**: CDK deployment from local machine
+- **Purpose**: Create all AWS resources (VPC, RDS, ECS, etc.)
+- **Command**: `cdk deploy --all --context environment=<env>`
+
+### **Application Deployment (GitHub Actions, Automatic)**
+
+#### **1. Development Environment (`dev` branch)**
 
 - **Trigger**: Push to `dev` branch
 - **Purpose**: Development and testing
 - **Auto-deploy**: ✅ Yes
 - **Domain**: `dev-api.bluepansy.in`
-- **Features**: Auto-stop enabled, minimal resources
+- **ECS**: `dev-bluepansy-cluster` → `dev-bluepansy-service`
+- **ECR**: `dev-bluepansy-api`
 
-**Workflow**: `.github/workflows/deploy-dev.yml`
+**Workflow**: `.github/workflows/deploy-app-dev.yml`
 
-### **2. QA Environment (`qa` branch)**
+#### **2. QA Environment (`qa` branch)**
 
 - **Trigger**: Push to `qa` branch
 - **Purpose**: Quality assurance and testing
 - **Auto-deploy**: ✅ Yes
 - **Domain**: `qa-api.bluepansy.in`
-- **Features**: Auto-stop enabled, testing resources
+- **ECS**: `qa-bluepansy-cluster` → `qa-bluepansy-service`
+- **ECR**: `qa-bluepansy-api`
 
-**Workflow**: `.github/workflows/deploy-qa.yml`
+**Workflow**: `.github/workflows/deploy-app-qa.yml`
 
-### **3. Beta Environment (`beta` branch)**
+#### **3. Beta Environment (`beta` branch)**
 
 - **Trigger**: Push to `beta` branch
 - **Purpose**: Staging and pre-production testing
 - **Auto-deploy**: ✅ Yes
 - **Domain**: `beta-api.bluepansy.in`
-- **Features**: No auto-stop, production-like resources
+- **ECS**: `beta-bluepansy-cluster` → `beta-bluepansy-service`
+- **ECR**: `beta-bluepansy-api`
 
-**Workflow**: `.github/workflows/deploy-beta.yml`
+**Workflow**: `.github/workflows/deploy-app-beta.yml`
 
-### **4. Production Environment (`main` branch)**
+#### **4. Production Environment (`main` branch)**
 
 - **Trigger**: Push to `main` branch
 - **Purpose**: Production deployment
 - **Auto-deploy**: ✅ Yes
 - **Domain**: `api.bluepansy.in`
-- **Features**: No auto-stop, full production resources
+- **ECS**: `production-bluepansy-cluster` → `production-bluepansy-service`
+- **ECR**: `production-bluepansy-api`
 
-**Workflow**: `.github/workflows/deploy-production.yml`
+**Workflow**: `.github/workflows/deploy-app-production.yml`
 
 ## 🔄 Development Process
 
@@ -144,9 +156,8 @@ If a production deployment fails:
 
 2. **Manual rollback** (if needed):
    ```bash
-   # Rollback to previous CDK deployment
-   cd infrastructure
-   cdk rollback --stack-name production-ecs-stack
+   # Rollback to previous ECS deployment
+   aws ecs update-service --cluster production-bluepansy-cluster --service production-bluepansy-service --task-definition <previous-task-definition>
    ```
 
 ### **Database Rollback**
@@ -200,9 +211,9 @@ If a production deployment fails:
 
 1. **Deployment Stuck**
 
-   - Check CloudFormation stack status
-   - Verify ECS service health
-   - Check ECR image availability
+   - Check ECS service status
+   - Verify ECR image availability
+   - Review CloudWatch logs
 
 2. **Service Unhealthy**
 

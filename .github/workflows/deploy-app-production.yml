@@ -1,4 +1,4 @@
-name: Deploy Production Environment
+name: Deploy App to Production Environment
 
 on:
   push:
@@ -20,33 +20,13 @@ env:
   ENVIRONMENT: production
 
 jobs:
-  deploy:
-    name: Deploy Production Infrastructure
+  deploy-app:
+    name: Deploy Application to Production
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.12"
-          cache: "pip"
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "18"
-          cache: "npm"
-
-      - name: Install AWS CDK
-        run: npm install -g aws-cdk
-
-      - name: Install Python dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -54,17 +34,6 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
-
-      - name: Bootstrap CDK (if needed)
-        run: |
-          cd infrastructure
-          cdk bootstrap || echo "CDK already bootstrapped"
-
-      - name: Synthesize and Deploy CDK
-        run: |
-          cd infrastructure
-          cdk synth
-          cdk deploy --all --context environment=production --require-approval never
 
       - name: Build and Push Docker Image
         run: |
@@ -89,9 +58,9 @@ jobs:
         run: |
           aws ecs wait services-stable --cluster production-bluepansy-cluster --services production-bluepansy-service
 
-      - name: Run Smoke Tests
+      - name: Health Check
         run: |
-          # Wait a bit for service to be fully ready
+          # Wait for service to be ready
           sleep 30
 
           # Basic health check
@@ -99,8 +68,8 @@ jobs:
 
       - name: Deployment Summary
         run: |
-          echo "🚀 Production Environment Deployment Complete!"
+          echo "🚀 App Deployment to Production Complete!"
           echo "🌐 API Endpoint: https://api.bluepansy.in"
           echo "📊 ECS Service: production-bluepansy-service"
-          echo "🗄️  RDS Database: production-database"
+          echo "🐳 Docker Image: production-bluepansy-api:latest"
           echo "✅ Production deployment successful!"
