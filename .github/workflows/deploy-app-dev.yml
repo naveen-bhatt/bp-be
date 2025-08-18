@@ -1,4 +1,5 @@
 name: Deploy App to Dev Environment
+
 on:
   push:
     branches: [dev]
@@ -13,145 +14,222 @@ on:
         type: choice
         options:
           - dev
+
 env:
   AWS_REGION: ap-south-1
   ENVIRONMENT: dev
+
 jobs:
   deploy-app:
     name: Deploy Application to Dev
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
-          
+
       - name: Build and Push Docker Image
         run: |
           # Login to ECR
           aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
-          
+
           # Build image
           docker build -t dev-bluepansy-api .
-          
+
           # Tag for ECR
           docker tag dev-bluepansy-api:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/dev-bluepansy-api:latest
-          
+
           # Push to ECR
           docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/dev-bluepansy-api:latest
-          
+
       - name: Update ECS Service
         run: |
           # Force new deployment to pick up the new image
           aws ecs update-service --cluster dev-bluepansy-cluster --service dev-bluepansy-service --force-new-deployment
-          
+
       - name: Wait for ECS Service Stability
         run: |
           aws ecs wait services-stable --cluster dev-bluepansy-cluster --services dev-bluepansy-service
+
+      - name: Debug Task Definition
+        run: |
+          echo "🔍 Debugging task definition and container configuration..."
           
+          # Get task definition details
+          aws ecs describe-task-definition \
+            --task-definition dev-bluepansy-task \
+            --query 'taskDefinition.{
+              family: family,
+              revision: revision,
+              status: status,
+              containers: containerDefinitions[*].{
+                name: name,
+                image: image,
+                essential: essential,
+                logConfiguration: logConfiguration
+              }
+            }' \
+            --output json
+
+          # Check if the container name exists
+          CONTAINER_NAMES=$(aws ecs describe-task-definition \
+            --task-definition dev-bluepansy-task \
+            --query 'taskDefinition.containerDefinitions[*].name' \
+            --output text)
+          
+          echo "🔍 Available container names: $CONTAINER_NAMES"
+          
+          # Verify log group exists
+          echo "🔍 Checking CloudWatch log groups..."
+          aws logs describe-log-groups \
+            --log-group-name-prefix "/ecs/dev-bluepansy" \
+            --query 'logGroups[*].{Name:logGroupName,CreationTime:creationTime}' \
+            --output table 2>/dev/null || echo "No log groups found with prefix /ecs/dev-bluepansy"
+
       - name: Run Database Migrations
-        id: run-migrations
         run: |
           echo "🔄 Running database migrations..."
-          
-          # Get ECS task definition ARN
+
+          # Get the current service's network configuration
+          echo "🔍 Getting service network configuration..."
+          SERVICE_CONFIG=$(aws ecs describe-services \
+            --cluster dev-bluepansy-cluster \
+            --services dev-bluepansy-service \
+            --query 'services[0].networkConfiguration.awsvpcConfiguration' \
+            --output json)
+
+          echo "🔍 Service network config: $SERVICE_CONFIG"
+
+          # Extract subnets and security groups using jq
+          SUBNETS=$(echo "$SERVICE_CONFIG" | jq -r '.subnets | @csv' | tr -d '"')
+          SECURITY_GROUPS=$(echo "$SERVICE_CONFIG" | jq -r '.securityGroups | @csv' | tr -d '"')
+
+          echo "🔍 Using subnets: $SUBNETS"
+          echo "🔍 Using security groups: $SECURITY_GROUPS"
+
+          # Get the latest task definition ARN
           TASK_DEF_ARN=$(aws ecs describe-task-definition \
             --task-definition dev-bluepansy-task \
             --query 'taskDefinition.taskDefinitionArn' \
             --output text)
+
           echo "🔍 Using task definition: $TASK_DEF_ARN"
-          
-          # Get network configuration from the ECS service
-          NETWORK_CONFIG=$(aws ecs describe-services \
-            --cluster dev-bluepansy-cluster \
-            --services dev-bluepansy-service \
-            --query 'services[0].networkConfiguration' \
-            --output json)
-          
-          # Run migrations using ECS run-task with same network config and an environment override
+
+          # Run migration task with proper error handling
           echo "🚀 Starting migration task..."
-          aws ecs run-task \
+          
+          MIGRATION_TASK_ARN=$(aws ecs run-task \
             --cluster dev-bluepansy-cluster \
             --launch-type FARGATE \
-            --task-definition $TASK_DEF_ARN \
-            --network-configuration "$NETWORK_CONFIG" \
-            --overrides '{"containerOverrides":[{"name":"dev-api","command":["alembic","upgrade","head"],"environment":[{"name":"DATABASE_URL","value":"${{ secrets.DATABASE_URL }}"}]}]}' \
+            --task-definition "$TASK_DEF_ARN" \
+            --network-configuration "{
+              \"awsvpcConfiguration\": {
+                \"subnets\": [\"$(echo $SUBNETS | sed 's/,/\",\"/g')\"],
+                \"securityGroups\": [\"$(echo $SECURITY_GROUPS | sed 's/,/\",\"/g')\"],
+                \"assignPublicIp\": \"DISABLED\"
+              }
+            }" \
+            --overrides '{
+              "containerOverrides": [
+                {
+                  "name": "dev-bluepansy-api",
+                  "command": ["alembic", "upgrade", "head"]
+                }
+              ]
+            }' \
             --query 'tasks[0].taskArn' \
-            --output text > /tmp/migration-task-arn
-          
-          MIGRATION_TASK_ARN=$(cat /tmp/migration-task-arn)
+            --output text)
+
           echo "🔍 Migration task ARN: $MIGRATION_TASK_ARN"
-          
-          # Wait for migration task to complete
+
+          # Wait for task completion with timeout
           echo "⏳ Waiting for migration task to complete..."
-          aws ecs wait tasks-stopped \
+          timeout 600 aws ecs wait tasks-stopped \
             --cluster dev-bluepansy-cluster \
-            --tasks $MIGRATION_TASK_ARN
-          
-          # Check migration task status and get details
+            --tasks $MIGRATION_TASK_ARN || {
+              echo "❌ Migration task timed out after 10 minutes"
+              exit 1
+            }
+
+          # Check if migration was successful
+          echo "🔍 Checking migration task results..."
           TASK_DETAILS=$(aws ecs describe-tasks \
             --cluster dev-bluepansy-cluster \
             --tasks $MIGRATION_TASK_ARN \
-            --query 'tasks[0].containers[0].{exitCode:exitCode,reason:reason,lastStatus:lastStatus}' \
+            --query 'tasks[0]' \
             --output json)
-          
-          EXIT_CODE=$(echo "$TASK_DETAILS" | jq -r '.exitCode')
+
+          EXIT_CODE=$(echo "$TASK_DETAILS" | jq -r '.containers[0].exitCode // "null"')
+          STOP_REASON=$(echo "$TASK_DETAILS" | jq -r '.stoppedReason // "Unknown"')
           LAST_STATUS=$(echo "$TASK_DETAILS" | jq -r '.lastStatus')
-          REASON=$(echo "$TASK_DETAILS" | jq -r '.reason')
-          
-          echo "::set-output name=exit_code::$EXIT_CODE"
-          echo "::set-output name=last_status::$LAST_STATUS"
-          echo "::set-output name=reason::$REASON"
-          echo "::set-output name=task_arn::$MIGRATION_TASK_ARN"
-          
-      - name: Check Migration Status and Fail on Error
-        run: |
-          EXIT_CODE="${{ steps.run-migrations.outputs.exit_code }}"
-          LAST_STATUS="${{ steps.run-migrations.outputs.last_status }}"
-          REASON="${{ steps.run-migrations.outputs.reason }}"
-          MIGRATION_TASK_ARN="${{ steps.run-migrations.outputs.task_arn }}"
-          
-          if [ "$EXIT_CODE" != "0" ]; then
-            echo "❌ Migration task failed with exit code: $EXIT_CODE"
-            echo "Last Status: $LAST_STATUS"
-            echo "Reason: $REASON"
-            echo "ECS Task ARN: $MIGRATION_TASK_ARN"
+
+          echo "🔍 Task status: $LAST_STATUS"
+          echo "🔍 Exit code: $EXIT_CODE"
+          echo "🔍 Stop reason: $STOP_REASON"
+
+          if [ "$EXIT_CODE" = "0" ]; then
+            echo "✅ Database migrations completed successfully!"
+          else
+            echo "❌ Migration failed with exit code: $EXIT_CODE"
+            echo "❌ Stop reason: $STOP_REASON"
             
-            # Use jq to get the full log output and log it for debugging
-            echo "🔍 Retrieving CloudWatch logs for failed task..."
-            LOG_GROUP="/ecs/dev-bluepansy-api"
-            LOG_STREAM=$(aws logs describe-log-streams \
-              --log-group-name "$LOG_GROUP" \
+            # Print full container details for debugging
+            echo "🔍 Full container details:"
+            echo "$TASK_DETAILS" | jq '.containers[0]'
+            
+            # Attempt to get CloudWatch logs
+            echo "🔍 Attempting to retrieve CloudWatch logs..."
+            
+            # Extract task ID from ARN for log stream name
+            TASK_ID=$(echo $MIGRATION_TASK_ARN | awk -F'/' '{print $NF}')
+            
+            # Try different log stream name patterns
+            LOG_PATTERNS=(
+              "ecs/dev-bluepansy-api/$TASK_ID"
+              "dev-bluepansy-api/dev-bluepansy-api/$TASK_ID"
+              "dev-api/$TASK_ID"
+            )
+            
+            LOG_GROUP_NAME="/ecs/dev-bluepansy-api"
+            
+            for PATTERN in "${LOG_PATTERNS[@]}"; do
+              echo "🔍 Trying log stream pattern: $PATTERN"
+              aws logs get-log-events \
+                --log-group-name "$LOG_GROUP_NAME" \
+                --log-stream-name "$PATTERN" \
+                --query 'events[*].message' \
+                --output text 2>/dev/null && break || echo "Pattern $PATTERN not found"
+            done
+            
+            # If specific patterns don't work, list recent streams
+            echo "🔍 Listing recent log streams for debugging..."
+            aws logs describe-log-streams \
+              --log-group-name "$LOG_GROUP_NAME" \
               --order-by LastEventTime \
               --descending \
-              --limit 1 \
-              --query 'logStreams[0].logStreamName' \
-              --output text)
-              
-            if [ "$LOG_STREAM" != "None" ]; then
-              echo "Log Stream: $LOG_STREAM"
-              echo "--- LOGS START ---"
-              aws logs get-log-events --log-group-name "$LOG_GROUP" --log-stream-name "$LOG_STREAM" --query 'events[*].message' --output text
-              echo "--- LOGS END ---"
-            else
-              echo "Could not find recent log stream for task."
-            fi
+              --max-items 5 \
+              --query 'logStreams[*].{Name:logStreamName,LastEvent:lastEventTime}' \
+              --output table 2>/dev/null || echo "Could not list log streams"
+            
             exit 1
-          else
-            echo "✅ Database migrations completed successfully!"
           fi
 
       - name: Health Check
         run: |
           # Wait for service to be ready
+          echo "🔄 Waiting for service to be ready..."
           sleep 30
+
           # Basic health check
-          curl -f https://dev-api.bluepansy.in/health || echo "Health check failed - service might still be starting"
+          echo "🔍 Performing health check..."
+          curl -f https://dev-api.bluepansy.in/health || echo "⚠️  Health check failed - service might still be starting"
 
       - name: Deployment Summary
         run: |
