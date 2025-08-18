@@ -64,7 +64,7 @@ jobs:
 
           # Install only the minimal dependencies needed for migrations
           python -m pip install --upgrade pip
-          pip install alembic psycopg2-binary
+          pip install alembic PyMySQL
 
           # Set up environment variables for migration
           export DATABASE_URL="${{ secrets.DATABASE_URL }}"
