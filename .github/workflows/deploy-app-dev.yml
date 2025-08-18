@@ -112,7 +112,7 @@ jobs:
             --cluster dev-bluepansy-cluster \
             --tasks $MIGRATION_TASK_ARN
 
-          # Check migration task status
+                    # Check migration task status
           TASK_STATUS=$(aws ecs describe-tasks \
             --cluster dev-bluepansy-cluster \
             --tasks $MIGRATION_TASK_ARN \
@@ -130,6 +130,37 @@ jobs:
               echo "✅ Database migrations completed successfully!"
             else
               echo "❌ Migration task failed with exit code: $EXIT_CODE"
+              
+              # Get detailed error information
+              echo "🔍 Getting task details for debugging..."
+              aws ecs describe-tasks \
+                --cluster dev-bluepansy-cluster \
+                --tasks $MIGRATION_TASK_ARN \
+                --query 'tasks[0].containers[0].{exitCode:exitCode,reason:reason,lastStatus:lastStatus}' \
+                --output table
+              
+              # Get CloudWatch logs if available
+              echo "🔍 Checking for CloudWatch logs..."
+              LOG_GROUP="/ecs/dev-bluepansy-api"
+              LOG_STREAM=$(aws logs describe-log-streams \
+                --log-group-name "$LOG_GROUP" \
+                --log-stream-name-prefix "ecs/dev-api" \
+                --order-by LastEventTime \
+                --descending \
+                --max-items 1 \
+                --query 'logStreams[0].logStreamName' \
+                --output text 2>/dev/null || echo "No log streams found")
+              
+              if [ "$LOG_STREAM" != "No log streams found" ] && [ "$LOG_STREAM" != "None" ]; then
+                echo "🔍 Recent logs from migration task:"
+                aws logs get-log-events \
+                  --log-group-name "$LOG_GROUP" \
+                  --log-stream-name "$LOG_STREAM" \
+                  --start-time $(date -d '5 minutes ago' +%s)000 \
+                  --query 'events[*].message' \
+                  --output text 2>/dev/null || echo "Could not retrieve logs"
+              fi
+              
               exit 1
             fi
           else
