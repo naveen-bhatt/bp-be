@@ -246,7 +246,7 @@ def _determine_provider(user: Any) -> Optional[str]:
     if _determine_user_type(user) == "SOCIAL":
         # Check social accounts to determine provider
         if hasattr(user, 'social_accounts') and user.social_accounts:
-            return user.social_accounts[0].provider.value
+            return user.social_accounts[0].provider
     return None
 
 

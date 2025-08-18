@@ -4,7 +4,7 @@ from typing import Optional, Dict, Any
 from sqlalchemy.orm import Session
 
 from app.repositories.user_repository import UserRepository
-from app.models.user import User
+from app.models.user import User, UserType
 from app.core.security import create_anonymous_token, verify_password, hash_password, create_token_pair, create_enhanced_token_pair, verify_token
 from app.core.logging import get_logger
 
@@ -185,9 +185,12 @@ class AuthService:
                 )
                 logger.info(f"Created social account for user {user.id} with provider {provider}")
             
-            # Create tokens
+            # Refresh user from database to ensure we have the latest data
+            self.db.refresh(user)
+            
+            # Create tokens with refreshed user data
             tokens = create_enhanced_token_pair(user)
-            logger.info(f"Successful social registration conversion for user: {email}")
+            logger.info(f"Successful social registration conversion for user: {email} (user_type: {user.user_type.value if user.user_type else 'None'})")
             return tokens
             
         except Exception as e:
@@ -228,6 +231,10 @@ class AuthService:
             
             if user_info.avatar_url and user_info.avatar_url != user.display_picture:
                 user.display_picture = user_info.avatar_url
+                updated = True
+            
+            if user.user_type == UserType.ANONYMOUS:
+                user.user_type = UserType.SOCIAL
                 updated = True
             
             # Commit changes if any updates were made
@@ -285,9 +292,12 @@ class AuthService:
                 logger.warning(f"Could not update last login: {e}")
                 # Continue without updating last login
             
-            # Create tokens
+            # Refresh user from database to ensure we have the latest data
+            self.db.refresh(user)
+            
+            # Create tokens with refreshed user data
             tokens = create_enhanced_token_pair(user)
-            logger.info(f"Successful social login for user: {email}")
+            logger.info(f"Successful social login for user: {email} (user_type: {user.user_type.value if user.user_type else 'None'})")
             return tokens
             
         except Exception as e:
