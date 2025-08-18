@@ -61,33 +61,37 @@ jobs:
       - name: Run Database Migrations
         run: |
           echo "🔄 Running database migrations..."
-          
+
           # Get ECS task definition ARN
           TASK_DEF_ARN=$(aws ecs describe-task-definition \
             --task-definition dev-bluepansy-task \
             --query 'taskDefinition.taskDefinitionArn' \
             --output text)
-          
+
           echo "🔍 Using task definition: $TASK_DEF_ARN"
-          
-          # Get private subnet IDs from the ECS service
-          SUBNET_IDS=$(aws ecs describe-services \
+
+                    # Get private subnet IDs from the ECS service and format them properly
+          SUBNET_IDS_RAW=$(aws ecs describe-services \
             --cluster dev-bluepansy-cluster \
             --services dev-bluepansy-service \
             --query 'services[0].networkConfiguration.awsvpcConfiguration.subnets[]' \
             --output text)
-          
-          echo "🔍 Using subnets: $SUBNET_IDS"
-          
+
+          # Convert tab/space separated string to comma-separated
+          SUBNET_IDS=$(echo "$SUBNET_IDS_RAW" | tr '\t' ' ' | tr ' ' '\n' | grep -v '^$' | tr '\n' ',' | sed 's/,$//')
+
+          echo "🔍 Raw subnets: $SUBNET_IDS_RAW"
+          echo "🔍 Formatted subnets: $SUBNET_IDS"
+
           # Get security group IDs from the ECS service
           SECURITY_GROUPS=$(aws ecs describe-services \
             --cluster dev-bluepansy-cluster \
             --services dev-bluepansy-service \
             --query 'services[0].networkConfiguration.awsvpcConfiguration.securityGroups[]' \
             --output text)
-          
+
           echo "🔍 Using security groups: $SECURITY_GROUPS"
-          
+
           # Run migrations using ECS run-task with same network config
           echo "🚀 Starting migration task..."
           aws ecs run-task \
@@ -98,23 +102,23 @@ jobs:
             --overrides '{"containerOverrides":[{"name":"dev-api","command":["alembic","upgrade","head"]}]}' \
             --query 'tasks[0].taskArn' \
             --output text > /tmp/migration-task-arn
-          
+
           MIGRATION_TASK_ARN=$(cat /tmp/migration-task-arn)
           echo "🔍 Migration task ARN: $MIGRATION_TASK_ARN"
-          
+
           # Wait for migration task to complete
           echo "⏳ Waiting for migration task to complete..."
           aws ecs wait tasks-stopped \
             --cluster dev-bluepansy-cluster \
             --tasks $MIGRATION_TASK_ARN
-          
+
           # Check migration task status
           TASK_STATUS=$(aws ecs describe-tasks \
             --cluster dev-bluepansy-cluster \
             --tasks $MIGRATION_TASK_ARN \
             --query 'tasks[0].lastStatus' \
             --output text)
-          
+
           if [ "$TASK_STATUS" = "STOPPED" ]; then
             EXIT_CODE=$(aws ecs describe-tasks \
               --cluster dev-bluepansy-cluster \
