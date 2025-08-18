@@ -112,7 +112,7 @@ jobs:
             --cluster dev-bluepansy-cluster \
             --tasks $MIGRATION_TASK_ARN
 
-                    # Check migration task status
+          # Check migration task status
           TASK_STATUS=$(aws ecs describe-tasks \
             --cluster dev-bluepansy-cluster \
             --tasks $MIGRATION_TASK_ARN \
@@ -142,23 +142,42 @@ jobs:
               # Get CloudWatch logs if available
               echo "🔍 Checking for CloudWatch logs..."
               LOG_GROUP="/ecs/dev-bluepansy-api"
+              
+              # Try to find the specific log stream for this migration task
+              echo "🔍 Looking for log streams..."
+              aws logs describe-log-streams \
+                --log-group-name "$LOG_GROUP" \
+                --order-by LastEventTime \
+                --descending \
+                --max-items 5 \
+                --query 'logStreams[*].logStreamName' \
+                --output table 2>/dev/null || echo "Could not list log streams"
+              
+              # Try to get logs from the most recent stream
               LOG_STREAM=$(aws logs describe-log-streams \
                 --log-group-name "$LOG_GROUP" \
-                --log-stream-name-prefix "ecs/dev-api" \
                 --order-by LastEventTime \
                 --descending \
                 --max-items 1 \
                 --query 'logStreams[0].logStreamName' \
                 --output text 2>/dev/null || echo "No log streams found")
               
+              echo "🔍 Using log stream: $LOG_STREAM"
+              
               if [ "$LOG_STREAM" != "No log streams found" ] && [ "$LOG_STREAM" != "None" ]; then
                 echo "🔍 Recent logs from migration task:"
                 aws logs get-log-events \
                   --log-group-name "$LOG_GROUP" \
                   --log-stream-name "$LOG_STREAM" \
-                  --start-time $(date -d '5 minutes ago' +%s)000 \
+                  --start-time $(date -d '10 minutes ago' +%s)000 \
                   --query 'events[*].message' \
                   --output text 2>/dev/null || echo "Could not retrieve logs"
+              else
+                echo "🔍 No log streams found. Checking if log group exists..."
+                aws logs describe-log-groups \
+                  --log-group-name-prefix "/ecs/dev-bluepansy" \
+                  --query 'logGroups[*].logGroupName' \
+                  --output table 2>/dev/null || echo "Could not list log groups"
               fi
               
               exit 1
