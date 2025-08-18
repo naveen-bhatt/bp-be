@@ -166,12 +166,34 @@ jobs:
               
               if [ "$LOG_STREAM" != "No log streams found" ] && [ "$LOG_STREAM" != "None" ]; then
                 echo "🔍 Recent logs from migration task:"
+                echo "🔍 Log stream: $LOG_STREAM"
+                
+                # Try to get logs with different approaches
+                echo "🔍 Attempting to get logs..."
+                
+                # Method 1: Get all events from the stream
                 aws logs get-log-events \
                   --log-group-name "$LOG_GROUP" \
                   --log-stream-name "$LOG_STREAM" \
-                  --start-time $(date -d '10 minutes ago' +%s)000 \
                   --query 'events[*].message' \
-                  --output text 2>/dev/null || echo "Could not retrieve logs"
+                  --output text 2>/dev/null || echo "Method 1 failed"
+                
+                # Method 2: Get events with time range
+                echo "🔍 Trying with time range..."
+                aws logs get-log-events \
+                  --log-group-name "$LOG_GROUP" \
+                  --log-stream-name "$LOG_STREAM" \
+                  --start-time $(($(date +%s) - 600))000 \
+                  --query 'events[*].message' \
+                  --output text 2>/dev/null || echo "Method 2 failed"
+                
+                # Method 3: Get raw events without query
+                echo "🔍 Trying raw events..."
+                aws logs get-log-events \
+                  --log-group-name "$LOG_GROUP" \
+                  --log-stream-name "$LOG_STREAM" \
+                  --output json 2>/dev/null | jq -r '.events[].message' 2>/dev/null || echo "Method 3 failed"
+                
               else
                 echo "🔍 No log streams found. Checking if log group exists..."
                 aws logs describe-log-groups \
