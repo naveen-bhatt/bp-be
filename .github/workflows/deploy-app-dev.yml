@@ -62,18 +62,13 @@ jobs:
         run: |
           echo "🔄 Running database migrations..."
 
-          # Install Python and dependencies for migration
+          # Install only the minimal dependencies needed for migrations
           python -m pip install --upgrade pip
           pip install alembic psycopg2-binary
 
           # Set up environment variables for migration
           export DATABASE_URL="${{ secrets.DATABASE_URL }}"
-          export ENVIRONMENT="dev"
           export PYTHONPATH="${PWD}"
-
-          # Set minimal defaults for other required settings (not used by migrations)
-          export SECRET_KEY="migration-temp-key"
-          export CORS_ORIGINS="http://localhost:3000"
 
           # Run migrations
           cd ${GITHUB_WORKSPACE}

@@ -1,5 +1,6 @@
 """Alembic environment configuration."""
 
+import os
 import sys
 from pathlib import Path
 from logging.config import fileConfig
@@ -9,7 +10,7 @@ from alembic import context
 # Add app directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from app.core.config import settings
+# Import only what's needed for migrations
 from app.models.base import Base
 
 # Import all models to ensure they're registered with Base.metadata
@@ -26,8 +27,13 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# Set the SQLAlchemy URL from our settings
-config.set_main_option("sqlalchemy.url", settings.database_url)
+# Get database URL from environment variable directly
+database_url = os.getenv("DATABASE_URL")
+if not database_url:
+    raise ValueError("DATABASE_URL environment variable is required")
+
+# Set the SQLAlchemy URL directly
+config.set_main_option("sqlalchemy.url", database_url)
 
 # Target metadata for autogenerate support
 target_metadata = Base.metadata
@@ -66,10 +72,14 @@ def run_migrations_online() -> None:
     In this scenario we need to create an Engine
     and associate a connection with the context.
     """
-    # Use our app's database engine directly
-    from app.core.db import engine
-    
-    with engine.connect() as connection:
+    # Create engine directly from config instead of importing app.core.db
+    connectable = engine_from_config(
+        config.get_section(config.config_ini_section, {}),
+        prefix="sqlalchemy.",
+        poolclass=pool.NullPool,
+    )
+
+    with connectable.connect() as connection:
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
