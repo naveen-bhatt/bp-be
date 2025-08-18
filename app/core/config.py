@@ -65,13 +65,15 @@ class Settings(BaseSettings):
             "https://dev.bluepansy.in"
         ]
         
-        # If custom CORS origins are provided, use them
+        # If custom CORS origins are provided and not empty, use them
         if self.cors_origins and self.cors_origins.strip():
             custom_origins = [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
             if custom_origins:
+                logger.info(f"Using custom CORS origins: {custom_origins}")
                 return custom_origins
         
         # Return default origins
+        logger.info(f"Using default CORS origins: {default_origins}")
         return default_origins
     
     @field_validator("environment")
@@ -103,7 +105,7 @@ class Settings(BaseSettings):
     @property
     def is_development(self) -> bool:
         """Check if running in development environment."""
-        return self.environment == "dev"
+        return self.environment in ["dev", "local", "qa", "beta"]
     
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -119,5 +121,8 @@ settings = Settings()
 import logging
 logger = logging.getLogger(__name__)
 logger.info(f"CORS origins from env: '{settings.cors_origins}'")
+logger.info(f"CORS origins type: {type(settings.cors_origins)}")
+logger.info(f"CORS origins is None: {settings.cors_origins is None}")
+logger.info(f"CORS origins is empty string: {settings.cors_origins == ''}")
 logger.info(f"CORS origins list: {settings.cors_origins_list}")
 logger.info(f"Environment: {settings.environment}")
