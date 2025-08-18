@@ -62,17 +62,16 @@ jobs:
         run: |
           echo "🔄 Running database migrations..."
 
-          # Install only the minimal dependencies needed for migrations
-          python -m pip install --upgrade pip
-          pip install alembic PyMySQL
-
-          # Set up environment variables for migration
-          export DATABASE_URL="${{ secrets.DATABASE_URL }}"
-          export PYTHONPATH="${PWD}"
-
-          # Run migrations
-          cd ${GITHUB_WORKSPACE}
-          alembic upgrade head
+          # Run migrations inside the deployed Docker container
+          # This ensures network connectivity to RDS since the container is in the VPC
+          docker run --rm \
+            -e DATABASE_URL="${{ secrets.DATABASE_URL }}" \
+            -e ENVIRONMENT="dev" \
+            -e SECRET_KEY="migration-temp-key" \
+            -e CORS_ORIGINS="http://localhost:3000" \
+            -e PYTHONPATH=/app \
+            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/dev-bluepansy-api:latest \
+            sh -c "cd /app && alembic upgrade head"
 
           echo "✅ Database migrations completed successfully!"
 
