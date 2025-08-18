@@ -4,7 +4,7 @@ from decimal import Decimal
 from typing import List
 from datetime import datetime
 from sqlalchemy import Column, String, Text, Boolean, Integer, Index, DateTime, JSON, ForeignKey
-from sqlalchemy.dialects.mysql import DECIMAL
+
 from sqlalchemy.orm import relationship
 
 from .base import BaseModel, TimestampMixin
@@ -56,7 +56,7 @@ class Product(BaseModel):
     slide_image_urls = Column(JSON, nullable=True, comment="Array of image URLs")
     
     # Pricing and inventory
-    price = Column(DECIMAL(10, 2), nullable=False, index=True)
+    price = Column(String(20), nullable=False, index=True)
     currency = Column(String(3), default="INR", nullable=False)
     quantity = Column(Integer, default=0, nullable=False, index=True)
     

@@ -1,7 +1,7 @@
 """Wishlist model."""
 
-from sqlalchemy import Column, ForeignKey, Index
-from sqlalchemy.dialects.mysql import CHAR
+from sqlalchemy import Column, String, ForeignKey, Index
+
 from sqlalchemy.orm import relationship
 
 from .base import BaseModel
@@ -21,8 +21,8 @@ class WishlistItem(BaseModel):
     
     __tablename__ = "wishlist_items"
     
-    user_id = Column(CHAR(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    product_id = Column(CHAR(36), ForeignKey("products.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    product_id = Column(String(36), ForeignKey("products.id", ondelete="CASCADE"), nullable=False)
     
     # Relationships
     user = relationship("User", back_populates="wishlist_items")

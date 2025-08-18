@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Optional, List
 from sqlalchemy import Column, String, Boolean, DateTime, Index, Enum as SQLAlchemyEnum
-from sqlalchemy.dialects.mysql import CHAR
+
 from sqlalchemy.orm import relationship
 import enum
 

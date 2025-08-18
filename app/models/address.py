@@ -1,7 +1,7 @@
 """Address model."""
 
 from sqlalchemy import Column, String, ForeignKey, Index, Boolean, Enum, UniqueConstraint
-from sqlalchemy.dialects.mysql import CHAR
+
 from sqlalchemy.orm import relationship
 import enum
 
@@ -41,7 +41,7 @@ class Address(BaseModel):
     
     __tablename__ = "addresses"
     
-    user_id = Column(CHAR(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     address_type = Column(Enum(AddressType), nullable=False, default=AddressType.HOME)
     first_name = Column(String(100), nullable=False)
     last_name = Column(String(100), nullable=False)

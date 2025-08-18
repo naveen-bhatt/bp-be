@@ -4,7 +4,7 @@ from enum import Enum
 from typing import Optional
 from sqlalchemy import Column, String, ForeignKey, Index, Text
 from sqlalchemy.orm import relationship
-from sqlalchemy.dialects.mysql import CHAR
+
 
 from .base import BaseModel
 
@@ -34,7 +34,7 @@ class SocialAccount(BaseModel):
     
     __tablename__ = "social_accounts"
     
-    user_id = Column(CHAR(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     provider = Column(String(50), nullable=False)
     provider_account_id = Column(String(255), nullable=False)
     access_token = Column(Text, nullable=True)

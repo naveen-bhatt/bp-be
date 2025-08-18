@@ -4,7 +4,7 @@ import enum
 from decimal import Decimal
 from typing import Optional, List
 from sqlalchemy import Column, String, Integer, ForeignKey, Index, Enum
-from sqlalchemy.dialects.mysql import CHAR
+
 from sqlalchemy.orm import relationship
 
 from .base import BaseModel
@@ -32,8 +32,8 @@ class Cart(BaseModel):
     
     __tablename__ = "carts"
     
-    user_id = Column(CHAR(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    product_id = Column(CHAR(36), ForeignKey("products.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    product_id = Column(String(36), ForeignKey("products.id", ondelete="CASCADE"), nullable=False)
     quantity = Column(Integer, nullable=False)
     cart_state = Column(Enum(CartState), nullable=False, default=CartState.ACTIVE)
     

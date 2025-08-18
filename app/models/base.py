@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Any
 from sqlalchemy import Column, DateTime, String
-from sqlalchemy.dialects.mysql import CHAR
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import declarative_base, declared_attr
 import uuid
 
@@ -27,7 +27,7 @@ class UUIDMixin:
     """Mixin to add UUID primary key to models."""
     
     id = Column(
-        CHAR(36),
+        UUID(as_uuid=False),
         primary_key=True,
         default=lambda: str(uuid.uuid4()),
         nullable=False

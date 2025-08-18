@@ -61,7 +61,7 @@ jobs:
       - name: Debug Task Definition
         run: |
           echo "🔍 Debugging task definition and container configuration..."
-          
+
           # Get task definition details
           aws ecs describe-task-definition \
             --task-definition dev-bluepansy-task \
@@ -83,9 +83,9 @@ jobs:
             --task-definition dev-bluepansy-task \
             --query 'taskDefinition.containerDefinitions[*].name' \
             --output text)
-          
+
           echo "🔍 Available container names: $CONTAINER_NAMES"
-          
+
           # Verify log group exists
           echo "🔍 Checking CloudWatch log groups..."
           aws logs describe-log-groups \
@@ -95,129 +95,23 @@ jobs:
 
       - name: Run Database Migrations
         run: |
-          echo "🔄 Running database migrations..."
+          echo "🔄 Running database migrations for Supabase..."
 
-          # Get the current service's network configuration
-          echo "🔍 Getting service network configuration..."
-          SERVICE_CONFIG=$(aws ecs describe-services \
-            --cluster dev-bluepansy-cluster \
-            --services dev-bluepansy-service \
-            --query 'services[0].networkConfiguration.awsvpcConfiguration' \
-            --output json)
+          # Install required packages
+          pip install alembic psycopg2-binary
 
-          echo "🔍 Service network config: $SERVICE_CONFIG"
+          # Set environment variables for migration
+          export DATABASE_URL="${{ secrets.DATABASE_URL }}"
+          export PYTHONPATH=/app
 
-          # Extract subnets and security groups using jq
-          SUBNETS=$(echo "$SERVICE_CONFIG" | jq -r '.subnets | @csv' | tr -d '"')
-          SECURITY_GROUPS=$(echo "$SERVICE_CONFIG" | jq -r '.securityGroups | @csv' | tr -d '"')
+          # Run migrations directly (Supabase provides public access)
+          echo "🔍 Running alembic upgrade head..."
+          alembic upgrade head
 
-          echo "🔍 Using subnets: $SUBNETS"
-          echo "🔍 Using security groups: $SECURITY_GROUPS"
-
-          # Get the latest task definition ARN
-          TASK_DEF_ARN=$(aws ecs describe-task-definition \
-            --task-definition dev-bluepansy-task \
-            --query 'taskDefinition.taskDefinitionArn' \
-            --output text)
-
-          echo "🔍 Using task definition: $TASK_DEF_ARN"
-
-          # Run migration task with proper error handling
-          echo "🚀 Starting migration task..."
-          
-          MIGRATION_TASK_ARN=$(aws ecs run-task \
-            --cluster dev-bluepansy-cluster \
-            --launch-type FARGATE \
-            --task-definition "$TASK_DEF_ARN" \
-            --network-configuration "{
-              \"awsvpcConfiguration\": {
-                \"subnets\": [\"$(echo $SUBNETS | sed 's/,/\",\"/g')\"],
-                \"securityGroups\": [\"$(echo $SECURITY_GROUPS | sed 's/,/\",\"/g')\"],
-                \"assignPublicIp\": \"DISABLED\"
-              }
-            }" \
-            --overrides '{
-              "containerOverrides": [
-                {
-                  "name": "dev-bluepansy-api",
-                  "command": ["alembic", "upgrade", "head"]
-                }
-              ]
-            }' \
-            --query 'tasks[0].taskArn' \
-            --output text)
-
-          echo "🔍 Migration task ARN: $MIGRATION_TASK_ARN"
-
-          # Wait for task completion with timeout
-          echo "⏳ Waiting for migration task to complete..."
-          timeout 600 aws ecs wait tasks-stopped \
-            --cluster dev-bluepansy-cluster \
-            --tasks $MIGRATION_TASK_ARN || {
-              echo "❌ Migration task timed out after 10 minutes"
-              exit 1
-            }
-
-          # Check if migration was successful
-          echo "🔍 Checking migration task results..."
-          TASK_DETAILS=$(aws ecs describe-tasks \
-            --cluster dev-bluepansy-cluster \
-            --tasks $MIGRATION_TASK_ARN \
-            --query 'tasks[0]' \
-            --output json)
-
-          EXIT_CODE=$(echo "$TASK_DETAILS" | jq -r '.containers[0].exitCode // "null"')
-          STOP_REASON=$(echo "$TASK_DETAILS" | jq -r '.stoppedReason // "Unknown"')
-          LAST_STATUS=$(echo "$TASK_DETAILS" | jq -r '.lastStatus')
-
-          echo "🔍 Task status: $LAST_STATUS"
-          echo "🔍 Exit code: $EXIT_CODE"
-          echo "🔍 Stop reason: $STOP_REASON"
-
-          if [ "$EXIT_CODE" = "0" ]; then
+          if [ $? -eq 0 ]; then
             echo "✅ Database migrations completed successfully!"
           else
-            echo "❌ Migration failed with exit code: $EXIT_CODE"
-            echo "❌ Stop reason: $STOP_REASON"
-            
-            # Print full container details for debugging
-            echo "🔍 Full container details:"
-            echo "$TASK_DETAILS" | jq '.containers[0]'
-            
-            # Attempt to get CloudWatch logs
-            echo "🔍 Attempting to retrieve CloudWatch logs..."
-            
-            # Extract task ID from ARN for log stream name
-            TASK_ID=$(echo $MIGRATION_TASK_ARN | awk -F'/' '{print $NF}')
-            
-            # Try different log stream name patterns
-            LOG_PATTERNS=(
-              "ecs/dev-bluepansy-api/$TASK_ID"
-              "dev-bluepansy-api/dev-bluepansy-api/$TASK_ID"
-              "dev-api/$TASK_ID"
-            )
-            
-            LOG_GROUP_NAME="/ecs/dev-bluepansy-api"
-            
-            for PATTERN in "${LOG_PATTERNS[@]}"; do
-              echo "🔍 Trying log stream pattern: $PATTERN"
-              aws logs get-log-events \
-                --log-group-name "$LOG_GROUP_NAME" \
-                --log-stream-name "$PATTERN" \
-                --query 'events[*].message' \
-                --output text 2>/dev/null && break || echo "Pattern $PATTERN not found"
-            done
-            
-            # If specific patterns don't work, list recent streams
-            echo "🔍 Listing recent log streams for debugging..."
-            aws logs describe-log-streams \
-              --log-group-name "$LOG_GROUP_NAME" \
-              --order-by LastEventTime \
-              --descending \
-              --max-items 5 \
-              --query 'logStreams[*].{Name:logStreamName,LastEvent:lastEventTime}' \
-              --output table 2>/dev/null || echo "Could not list log streams"
-            
+            echo "❌ Database migrations failed!"
             exit 1
           fi
 

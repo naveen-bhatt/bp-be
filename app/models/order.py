@@ -4,7 +4,7 @@ from decimal import Decimal
 from enum import Enum
 from typing import List
 from sqlalchemy import Column, String, Integer, ForeignKey, Index, Boolean
-from sqlalchemy.dialects.mysql import DECIMAL, CHAR
+
 from sqlalchemy.orm import relationship
 
 from .base import BaseModel
@@ -39,13 +39,13 @@ class Order(BaseModel):
     
     __tablename__ = "orders"
     
-    user_id = Column(CHAR(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
-    address_id = Column(CHAR(36), ForeignKey("addresses.id", ondelete="SET NULL"), nullable=True)
-    cart_id = Column(CHAR(36), nullable=True)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    address_id = Column(String(36), ForeignKey("addresses.id", ondelete="SET NULL"), nullable=True)
+    cart_id = Column(String(36), nullable=True)
     shipping_id = Column(String(255), nullable=True)
     admin_notes = Column(String(1000), nullable=True)
     spam_order = Column(Boolean, default=False, nullable=False)
-    total_amount = Column(DECIMAL(10, 2), nullable=False)
+    total_amount = Column(String(20), nullable=False)
     currency = Column(String(3), default="INR", nullable=False)
     status = Column(String(50), default=OrderStatus.INITIATED.value, nullable=False)
     
@@ -125,10 +125,10 @@ class OrderItem(BaseModel):
     
     __tablename__ = "order_items"
     
-    order_id = Column(CHAR(36), ForeignKey("orders.id", ondelete="CASCADE"), nullable=False)
-    product_id = Column(CHAR(36), ForeignKey("products.id", ondelete="CASCADE"), nullable=False)
+    order_id = Column(String(36), ForeignKey("orders.id", ondelete="CASCADE"), nullable=False)
+    product_id = Column(String(36), ForeignKey("products.id", ondelete="CASCADE"), nullable=False)
     quantity = Column(Integer, nullable=False)
-    unit_price = Column(DECIMAL(10, 2), nullable=False)
+    unit_price = Column(String(20), nullable=False)
     
     # Relationships
     order = relationship("Order", back_populates="items")

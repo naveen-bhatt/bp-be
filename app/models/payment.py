@@ -4,7 +4,7 @@ from decimal import Decimal
 from enum import Enum
 from typing import Optional, Dict, Any
 from sqlalchemy import Column, String, ForeignKey, Index, JSON
-from sqlalchemy.dialects.mysql import DECIMAL, CHAR
+
 from sqlalchemy.orm import relationship
 
 from .base import BaseModel
@@ -45,11 +45,11 @@ class Payment(BaseModel):
     
     __tablename__ = "payments"
     
-    order_id = Column(CHAR(36), ForeignKey("orders.id", ondelete="CASCADE"), nullable=False)
+    order_id = Column(String(36), ForeignKey("orders.id", ondelete="CASCADE"), nullable=False)
     provider = Column(String(50), nullable=False)
     provider_payment_id = Column(String(255), nullable=True)  # Set when payment is created with provider
     status = Column(String(50), default=PaymentStatus.PENDING.value, nullable=False)
-    amount = Column(DECIMAL(10, 2), nullable=False)
+    amount = Column(String(20), nullable=False)
     currency = Column(String(3), default="INR", nullable=False)
     raw_payload = Column(JSON, nullable=True)  # Store raw provider response
     
